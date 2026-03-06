@@ -43,6 +43,9 @@ class AppSettings extends HiveObject {
   @HiveField(12)
   bool midSessionNotificationsEnabled;
 
+  @HiveField(13)
+  bool smartNotificationsEnabled;
+
   AppSettings({
     this.weeknightNotificationsEnabled = false,
     this.weeknightNotificationHour = 20,
@@ -57,5 +60,40 @@ class AppSettings extends HiveObject {
     this.planStartDate,
     this.darkModeOverride,
     this.midSessionNotificationsEnabled = false,
+    this.smartNotificationsEnabled = true,
   });
+
+  AppSettings copyWith({
+    bool? weeknightNotificationsEnabled,
+    int? weeknightNotificationHour,
+    int? weeknightNotificationMinute,
+    bool? weekendNotificationsEnabled,
+    int? weekendNotificationHour,
+    int? weekendNotificationMinute,
+    String? calendarId,
+    int? pomodoroMinutes,
+    int? shortBreakMinutes,
+    int? longBreakMinutes,
+    DateTime? planStartDate,
+    bool? darkModeOverride,
+    bool? midSessionNotificationsEnabled,
+    bool? smartNotificationsEnabled,
+  }) {
+    return AppSettings(
+      weeknightNotificationsEnabled: weeknightNotificationsEnabled ?? this.weeknightNotificationsEnabled,
+      weeknightNotificationHour: weeknightNotificationHour ?? this.weeknightNotificationHour,
+      weeknightNotificationMinute: weeknightNotificationMinute ?? this.weeknightNotificationMinute,
+      weekendNotificationsEnabled: weekendNotificationsEnabled ?? this.weekendNotificationsEnabled,
+      weekendNotificationHour: weekendNotificationHour ?? this.weekendNotificationHour,
+      weekendNotificationMinute: weekendNotificationMinute ?? this.weekendNotificationMinute,
+      calendarId: calendarId ?? this.calendarId,
+      pomodoroMinutes: pomodoroMinutes ?? this.pomodoroMinutes,
+      shortBreakMinutes: shortBreakMinutes ?? this.shortBreakMinutes,
+      longBreakMinutes: longBreakMinutes ?? this.longBreakMinutes,
+      planStartDate: planStartDate ?? this.planStartDate,
+      darkModeOverride: darkModeOverride ?? this.darkModeOverride,
+      midSessionNotificationsEnabled: midSessionNotificationsEnabled ?? this.midSessionNotificationsEnabled,
+      smartNotificationsEnabled: smartNotificationsEnabled ?? this.smartNotificationsEnabled,
+    );
+  }
 }

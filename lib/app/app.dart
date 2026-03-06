@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'theme.dart';
+import '../providers/behavior_provider.dart';
 import '../providers/settings_provider.dart';
 import '../screens/dashboard/dashboard_screen.dart';
 import '../screens/plan/plan_screen.dart';
@@ -30,14 +31,14 @@ class CloudStudyApp extends ConsumerWidget {
   }
 }
 
-class _AppShell extends StatefulWidget {
+class _AppShell extends ConsumerStatefulWidget {
   const _AppShell();
 
   @override
-  State<_AppShell> createState() => _AppShellState();
+  ConsumerState<_AppShell> createState() => _AppShellState();
 }
 
-class _AppShellState extends State<_AppShell> with TickerProviderStateMixin {
+class _AppShellState extends ConsumerState<_AppShell> with TickerProviderStateMixin, WidgetsBindingObserver {
   int _currentIndex = 0;
   late final PageController _pageController;
   late final AnimationController _fadeController;
@@ -51,13 +52,25 @@ class _AppShellState extends State<_AppShell> with TickerProviderStateMixin {
       duration: const Duration(milliseconds: 300),
       value: 1.0,
     );
+    WidgetsBinding.instance.addObserver(this);
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _pageController.dispose();
     _fadeController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      try {
+        ref.read(behaviorRepoProvider).recordAppOpen();
+        ref.read(smartNotificationProvider).reschedule();
+      } catch (_) {}
+    }
   }
 
   void _onTabTapped(int index) {

@@ -60,16 +60,19 @@ lib/
     repositories_provider.dart  # Provider declarations (overridden in main)
     study_plan_provider.dart    # weekPlansProvider, selectedWeekProvider, currentWeekPlanProvider
     progress_provider.dart      # completedTaskIds, weekProgress, overallProgress, streak, examCountdown
-    settings_provider.dart      # Wires notification scheduling to toggle changes
+    settings_provider.dart      # Wires notification scheduling to toggle changes (uses copyWith)
+    today_provider.dart         # DayType, TimeContext, todayTasks, todaySaaTopic, nextUncompletedTask
+    behavior_provider.dart      # Smart notification behavior tracking
   screens/
-    dashboard/dashboard_screen.dart  # Animated hero card, week card, next session, week grid
-    plan/plan_screen.dart            # Week selector, task sections, checkboxes, quick note
+    dashboard/dashboard_screen.dart  # Mission header, quick stats, today's tasks/SAA card, motivation, week card
+    plan/plan_screen.dart            # Week selector, task sections (uses shared TaskChecklist), quick note
     edit/edit_week_screen.dart       # ReorderableListView, inline edit, swipe-delete, move-to-week
-    settings/settings_screen.dart    # Notification toggles, time pickers, dark mode, start date
+    settings/settings_screen.dart    # Smart + simple notification toggles, time pickers, dark mode, start date
     reflection/reflection_sheet.dart # Bottom sheet for weekly reflections
   services/
     notification_service.dart  # flutter_local_notifications, weeknight/weekend scheduling
-    widget_service.dart        # MethodChannel bridge to iOS WidgetKit
+    widget_service.dart        # MethodChannel bridge to iOS WidgetKit (sends dayType, todayTasks, streak, etc.)
+    motivation_service.dart    # Standalone motivation message generator (used by dashboard + widgets)
     export_service.dart        # Markdown export via share_plus
     calendar_service.dart      # Google Calendar placeholder (not implemented)
   shared/
@@ -83,11 +86,12 @@ lib/
       animated_nav_bar.dart    # Glassmorphic bottom nav with backdrop blur, haptics, scale animations
       progress_ring.dart       # CustomPainter circular progress
       phase_badge.dart         # Phase-colored badge chip
+      task_checklist.dart      # Shared interactive task checklist (used by dashboard + plan)
       mono_text.dart           # JetBrains Mono styled text
 ios/
   Runner/AppDelegate.swift     # MethodChannel handler for widget data
   CloudStudyWidget/
-    CloudStudyWidget.swift     # WidgetKit: small/medium/large home + lock screen widgets
+    CloudStudyWidget.swift     # WidgetKit: overview (S/M/L), next task, streak, motivation, lock screen widgets
     Info.plist
 ```
 
@@ -106,9 +110,9 @@ ios/
 - **Widget extension target**: CloudStudyWidget.swift exists but the extension target may not be properly added to the Xcode project (pbxproj). Requires Xcode GUI or manual pbxproj editing.
 - **App Group entitlement**: Needs to be configured in Xcode for both main app and widget extension targets.
 - **Google Calendar**: `calendar_service.dart` is a placeholder, not implemented.
-- **Notification schedule bug (may be fixed)**: Check that `notification_service.dart` schedules build reminders for **Friday & Saturday** (not Sun & Mon). Study nights should be **Sun-Thu**.
-- **Widget motivation messages**: Verify `widget_service.dart` `_getMotivation()` treats Fri-Sat as build days (not off days).
-- **Dashboard _getNextSession()**: Verify it shows Friday=build, Saturday=deploy (not off days).
+- ~~**Notification schedule bug**~~: Fixed. Fri-Sat correctly treated as build/deploy days everywhere.
+- ~~**Widget motivation messages**~~: Fixed. Motivation extracted to `motivation_service.dart`, used consistently.
+- ~~**Dashboard _getNextSession()**~~: Fixed. Dashboard now uses `todayDayTypeProvider` for day-aware mission header.
 
 ## Key Dependencies
 

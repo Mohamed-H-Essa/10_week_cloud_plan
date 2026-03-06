@@ -44,13 +44,58 @@ class SettingsScreen extends ConsumerWidget {
           const Divider(height: 1),
           _SectionHeader(title: 'NOTIFICATIONS'),
           SwitchListTile(
+            secondary: const Icon(Icons.auto_awesome),
+            title: const Text('Smart Notifications'),
+            subtitle: const Text('Adaptive reminders that learn your habits'),
+            value: settings.smartNotificationsEnabled,
+            onChanged: (v) => notifier.setSmartNotifications(v),
+          ),
+          if (settings.smartNotificationsEnabled)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.04)
+                      : Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline, size: 18,
+                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.6)),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Learns your patterns and sends reminders at optimal times',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          SwitchListTile(
             secondary: const Icon(Icons.nights_stay),
             title: const Text('Weeknight Reminders'),
-            subtitle: Text('Sun–Thu at ${_formatTime(settings.weeknightNotificationHour, settings.weeknightNotificationMinute)}'),
+            subtitle: Text(
+              settings.smartNotificationsEnabled
+                  ? 'Managed automatically'
+                  : 'Sun-Thu at ${_formatTime(settings.weeknightNotificationHour, settings.weeknightNotificationMinute)}',
+            ),
             value: settings.weeknightNotificationsEnabled,
-            onChanged: (v) => notifier.setWeeknightNotifications(v),
+            onChanged: settings.smartNotificationsEnabled
+                ? null
+                : (v) => notifier.setWeeknightNotifications(v),
           ),
-          if (settings.weeknightNotificationsEnabled)
+          if (settings.weeknightNotificationsEnabled && !settings.smartNotificationsEnabled)
             ListTile(
               leading: const SizedBox(width: 24),
               title: const Text('Reminder Time'),
@@ -74,11 +119,17 @@ class SettingsScreen extends ConsumerWidget {
           SwitchListTile(
             secondary: const Icon(Icons.wb_sunny),
             title: const Text('Weekend Reminders'),
-            subtitle: Text('Fri & Sat at ${_formatTime(settings.weekendNotificationHour, settings.weekendNotificationMinute)}'),
+            subtitle: Text(
+              settings.smartNotificationsEnabled
+                  ? 'Managed automatically'
+                  : 'Fri & Sat at ${_formatTime(settings.weekendNotificationHour, settings.weekendNotificationMinute)}',
+            ),
             value: settings.weekendNotificationsEnabled,
-            onChanged: (v) => notifier.setWeekendNotifications(v),
+            onChanged: settings.smartNotificationsEnabled
+                ? null
+                : (v) => notifier.setWeekendNotifications(v),
           ),
-          if (settings.weekendNotificationsEnabled)
+          if (settings.weekendNotificationsEnabled && !settings.smartNotificationsEnabled)
             ListTile(
               leading: const SizedBox(width: 24),
               title: const Text('Reminder Time'),

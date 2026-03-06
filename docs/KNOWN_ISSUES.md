@@ -2,15 +2,12 @@
 
 ## Bugs to Verify/Fix
 
-### Schedule Direction (HIGH PRIORITY)
-Multiple files may still have the wrong day mapping from a previous misunderstanding. **Friday and Saturday are BUILD/STUDY days, NOT off days.**
-
-Files to check:
-- `lib/services/notification_service.dart` - `scheduleWeekend()` should fire on Fri & Sat (not Sun & Mon)
-- `lib/screens/dashboard/dashboard_screen.dart` - `_getNextSession()` should show Fri=build, Sat=deploy
-- `lib/services/widget_service.dart` - `_getMotivation()` should treat Fri-Sat as build days
-- `ios/CloudStudyWidget/CloudStudyWidget.swift` - motivation messages (if generated there)
-- `lib/screens/settings/settings_screen.dart` - labels should say "Fri & Sat" for weekend reminders
+### Schedule Direction (FIXED)
+~~Multiple files may still have the wrong day mapping.~~ **Fixed.** All files now correctly treat Friday=build day, Saturday=deploy day, Sun-Thu=study nights.
+- Dashboard uses `todayDayTypeProvider` for day-aware display
+- Motivation logic extracted to `motivation_service.dart`, used consistently
+- Plan screen label corrected to "Weeknight Study (Sun-Thu)"
+- Widget service generates day-specific payloads (`dayType`, `todayTasks`)
 
 ### Widget Extension Not Linked
 - `ios/CloudStudyWidget/` files exist but the extension target may not be added to the Xcode project
@@ -36,6 +33,12 @@ Files to check:
 
 ## UI Polish Requests
 - User wants "impressive, animation-heavy but subtle" UI throughout
-- Dashboard has staggered animations and glass chips
+- Dashboard overhauled: mission header, quick stats row, interactive task checklist, motivation card, expandable week grid
 - Navbar has glassmorphism + scale bounce
-- More animation could be added to Plan screen and Settings screen
+- More animation could be added to Plan screen
+
+## Settings Fixes Applied
+- `AppSettings.copyWith()` replaces brittle 14-field manual constructor in settings_provider
+- Time validation: hour clamped to 0-23, minute to 0-59
+- Smart notification toggle: shows explanatory card + disabled simple toggles with "Managed automatically"
+- Behavior recording: always records app opens and task completions, only reschedules when smart mode is on

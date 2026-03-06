@@ -122,3 +122,14 @@ Channel name: `com.cloudstudy/widgets`
 - `withValues(alpha: x)` instead of deprecated `withOpacity(x)` for colors
 - Border radius: 12-20px for cards/containers, 4-6px for badges
 - Consistent padding: 16px standard, 24px for hero cards
+
+### copyWith Pattern for Hive Models
+
+Since Hive returns the same object reference on reads, Riverpod StateNotifiers won't detect changes. Use `copyWith()` to create new instances:
+
+```dart
+// AppSettings has a copyWith() method
+state = s.copyWith(); // creates a new instance, triggers StateNotifier
+
+// For adding fields: add to constructor, copyWith, and TypeAdapter (.g.dart)
+```

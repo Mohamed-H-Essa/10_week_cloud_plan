@@ -102,6 +102,37 @@ class NotificationService {
     );
   }
 
+  static Future<void> scheduleExact({
+    required int id,
+    required String title,
+    required String body,
+    required tz.TZDateTime dateTime,
+    int badge = 0,
+  }) async {
+    await _plugin.zonedSchedule(
+      id,
+      title,
+      body,
+      dateTime,
+      NotificationDetails(
+        iOS: DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
+          badgeNumber: badge,
+        ),
+      ),
+      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+    );
+  }
+
+  static Future<void> cancelSmartRange() async {
+    for (int i = 1000; i < 1064; i++) {
+      await _plugin.cancel(i);
+    }
+  }
+
   static Future<void> cancelAll() async {
     await _plugin.cancelAll();
   }

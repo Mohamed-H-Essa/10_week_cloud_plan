@@ -26,13 +26,14 @@ class AppSettingsAdapter extends TypeAdapter<AppSettings> {
       planStartDate: fields[10] as DateTime?,
       darkModeOverride: fields[11] as bool?,
       midSessionNotificationsEnabled: fields[12] as bool? ?? false,
+      smartNotificationsEnabled: fields[13] as bool? ?? true,
     );
   }
 
   @override
   void write(BinaryWriter writer, AppSettings obj) {
     writer
-      ..writeByte(13)
+      ..writeByte(14)
       ..writeByte(0)
       ..write(obj.weeknightNotificationsEnabled)
       ..writeByte(1)
@@ -58,7 +59,9 @@ class AppSettingsAdapter extends TypeAdapter<AppSettings> {
       ..writeByte(11)
       ..write(obj.darkModeOverride)
       ..writeByte(12)
-      ..write(obj.midSessionNotificationsEnabled);
+      ..write(obj.midSessionNotificationsEnabled)
+      ..writeByte(13)
+      ..write(obj.smartNotificationsEnabled);
   }
 
   @override

@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/models/app_settings.dart';
 import '../services/notification_service.dart';
+import '../services/smart_notification_engine.dart';
+import 'behavior_provider.dart';
 import 'repositories_provider.dart';
 
 final settingsProvider = StateNotifierProvider<SettingsNotifier, AppSettings>((
@@ -21,21 +23,7 @@ class SettingsNotifier extends StateNotifier<AppSettings> {
     final s = _ref.read(settingsRepoProvider).settings;
     // Create a new instance so StateNotifier detects the change
     // (Hive returns the same object reference, which skips notification)
-    state = AppSettings(
-      weeknightNotificationsEnabled: s.weeknightNotificationsEnabled,
-      weeknightNotificationHour: s.weeknightNotificationHour,
-      weeknightNotificationMinute: s.weeknightNotificationMinute,
-      weekendNotificationsEnabled: s.weekendNotificationsEnabled,
-      weekendNotificationHour: s.weekendNotificationHour,
-      weekendNotificationMinute: s.weekendNotificationMinute,
-      calendarId: s.calendarId,
-      pomodoroMinutes: s.pomodoroMinutes,
-      shortBreakMinutes: s.shortBreakMinutes,
-      longBreakMinutes: s.longBreakMinutes,
-      planStartDate: s.planStartDate,
-      darkModeOverride: s.darkModeOverride,
-      midSessionNotificationsEnabled: s.midSessionNotificationsEnabled,
-    );
+    state = s.copyWith();
   }
 
   Future<void> setPlanStartDate(DateTime date) async {
@@ -92,8 +80,8 @@ class SettingsNotifier extends StateNotifier<AppSettings> {
 
   Future<void> setWeeknightTime(int hour, int minute) async {
     await update((s) {
-      s.weeknightNotificationHour = hour;
-      s.weeknightNotificationMinute = minute;
+      s.weeknightNotificationHour = hour.clamp(0, 23);
+      s.weeknightNotificationMinute = minute.clamp(0, 59);
     });
     if (state.weeknightNotificationsEnabled) {
       await NotificationService.scheduleWeeknight(hour: hour, minute: minute);
@@ -102,8 +90,8 @@ class SettingsNotifier extends StateNotifier<AppSettings> {
 
   Future<void> setWeekendTime(int hour, int minute) async {
     await update((s) {
-      s.weekendNotificationHour = hour;
-      s.weekendNotificationMinute = minute;
+      s.weekendNotificationHour = hour.clamp(0, 23);
+      s.weekendNotificationMinute = minute.clamp(0, 59);
     });
     if (state.weekendNotificationsEnabled) {
       await NotificationService.scheduleWeekend(hour: hour, minute: minute);
@@ -115,6 +103,29 @@ class SettingsNotifier extends StateNotifier<AppSettings> {
       await NotificationService.requestPermissions();
     }
     await update((s) => s.midSessionNotificationsEnabled = enabled);
+  }
+
+  Future<void> setSmartNotifications(bool enabled) async {
+    if (enabled) {
+      final granted = await NotificationService.requestPermissions();
+      if (!granted) return;
+    }
+    await update((s) => s.smartNotificationsEnabled = enabled);
+    if (enabled) {
+      // Cancel simple recurring, schedule smart
+      await NotificationService.cancelGroup('weeknight');
+      await NotificationService.cancelGroup('weekend');
+      await SmartNotificationEngine.computeAndSchedule(
+        behaviorRepo: _ref.read(behaviorRepoProvider),
+        progressRepo: _ref.read(progressRepoProvider),
+        studyPlanRepo: _ref.read(studyPlanRepoProvider),
+        settingsRepo: _ref.read(settingsRepoProvider),
+      );
+    } else {
+      // Cancel smart, restore simple if enabled
+      await NotificationService.cancelSmartRange();
+      await restoreNotifications();
+    }
   }
 
   /// Re-schedule all enabled notifications (call on app startup)

@@ -1,12 +1,13 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../providers/progress_provider.dart';
 import '../../providers/study_plan_provider.dart';
+import '../../providers/today_provider.dart';
+import '../../services/motivation_service.dart' as motivation;
 import '../../shared/constants/phase_colors.dart';
-import '../../shared/widgets/progress_ring.dart';
 import '../../shared/widgets/phase_badge.dart';
+import '../../shared/widgets/task_checklist.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -18,6 +19,8 @@ class DashboardScreen extends ConsumerStatefulWidget {
 class _DashboardScreenState extends ConsumerState<DashboardScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _animController;
+  String _motivationQuote = '';
+  bool _weekGridExpanded = false;
 
   @override
   void initState() {
@@ -43,13 +46,25 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     final plans = ref.watch(weekPlansProvider);
     final weekPlan =
         plans.isNotEmpty && currentWeek >= 1 && currentWeek <= plans.length
-        ? plans[currentWeek - 1]
-        : null;
+            ? plans[currentWeek - 1]
+            : null;
     final weekProgress = ref.watch(weekProgressProvider(currentWeek));
     final colors = weekPlan != null
         ? getPhaseColors(weekPlan.phase, Theme.of(context).brightness)
         : null;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final dayType = ref.watch(todayDayTypeProvider);
+    final timeCtx = ref.watch(timeOfDayContextProvider);
+    final todayTasks = ref.watch(todayTasksProvider);
+    final saaTopic = ref.watch(todaySaaTopicProvider);
+    final saaSchedule = ref.watch(todaySaaScheduleProvider);
+    final completedIds = ref.watch(completedTaskIdsProvider);
+    final todayDone = todayTasks.where((t) => t.completed).length;
+
+    if (_motivationQuote.isEmpty) {
+      _motivationQuote = motivation.getMotivation(currentWeek, overallProgress);
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -61,24 +76,83 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
         children: [
-          // Overall Progress Card
+          // 1. Today's Mission Header
           _SlideIn(
             controller: _animController,
             delay: 0.0,
-            child: _ProgressHeroCard(
-              progress: overallProgress,
-              streak: streak,
-              examCountdown: examCountdown,
+            child: _MissionHeader(
+              dayType: dayType,
+              timeContext: timeCtx,
+              phaseColors: colors,
               isDark: isDark,
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
 
-          // Current Week Card
+          // 2. Quick Stats Row
+          _SlideIn(
+            controller: _animController,
+            delay: 0.08,
+            child: _QuickStatsRow(
+              overallProgress: overallProgress,
+              streak: streak,
+              examCountdown: examCountdown,
+              todayDone: todayDone,
+              todayTotal: todayTasks.length,
+              dayType: dayType,
+              isDark: isDark,
+            ),
+          ),
+          const SizedBox(height: 14),
+
+          // 3. Today's Tasks Card
+          _SlideIn(
+            controller: _animController,
+            delay: 0.16,
+            child: dayType == DayType.studyNight
+                ? _SaaSessionCard(
+                    topic: saaTopic ?? '',
+                    schedule: saaSchedule ?? '',
+                    phaseColors: colors,
+                    isDark: isDark,
+                  )
+                : _TodayTasksCard(
+                    dayType: dayType,
+                    weekPlan: weekPlan,
+                    completedIds: completedIds,
+                    todayDone: todayDone,
+                    todayTotal: todayTasks.length,
+                    phaseColors: colors,
+                    isDark: isDark,
+                  ),
+          ),
+          const SizedBox(height: 14),
+
+          // 4. Motivation Card
+          _SlideIn(
+            controller: _animController,
+            delay: 0.24,
+            child: _MotivationCard(
+              quote: _motivationQuote,
+              phaseColors: colors,
+              isDark: isDark,
+              onRefresh: () {
+                setState(() {
+                  _motivationQuote = motivation.getMotivation(
+                    currentWeek,
+                    overallProgress,
+                  );
+                });
+              },
+            ),
+          ),
+          const SizedBox(height: 14),
+
+          // 5. Current Week Card
           if (weekPlan != null && colors != null)
             _SlideIn(
               controller: _animController,
-              delay: 0.1,
+              delay: 0.32,
               child: _CurrentWeekCard(
                 plan: weekPlan,
                 currentWeek: currentWeek,
@@ -87,37 +161,63 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                 isDark: isDark,
               ),
             ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
 
-          // Next Session
+          // 6. Week Grid (expandable)
           _SlideIn(
             controller: _animController,
-            delay: 0.2,
-            child: _NextSessionCard(weekPlan: weekPlan, isDark: isDark),
-          ),
-          const SizedBox(height: 20),
-
-          // Week Progress Grid
-          _SlideIn(
-            controller: _animController,
-            delay: 0.3,
+            delay: 0.40,
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'WEEKLY PROGRESS',
-                  style: GoogleFonts.jetBrainsMono(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: isDark ? Colors.grey.shade500 : Colors.grey.shade400,
-                    letterSpacing: 1.5,
+                InkWell(
+                  onTap: () =>
+                      setState(() => _weekGridExpanded = !_weekGridExpanded),
+                  borderRadius: BorderRadius.circular(8),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    child: Row(
+                      children: [
+                        Text(
+                          'ALL WEEKS',
+                          style: GoogleFonts.jetBrainsMono(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: isDark
+                                ? Colors.grey.shade500
+                                : Colors.grey.shade400,
+                            letterSpacing: 1.5,
+                          ),
+                        ),
+                        const Spacer(),
+                        AnimatedRotation(
+                          turns: _weekGridExpanded ? 0.5 : 0,
+                          duration: const Duration(milliseconds: 200),
+                          child: Icon(
+                            Icons.keyboard_arrow_down,
+                            size: 20,
+                            color: isDark
+                                ? Colors.grey.shade500
+                                : Colors.grey.shade400,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-                const SizedBox(height: 10),
-                _WeekGrid(
-                  plans: plans,
-                  currentWeek: currentWeek,
-                  isDark: isDark,
+                AnimatedCrossFade(
+                  firstChild: const SizedBox.shrink(),
+                  secondChild: Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: _WeekGrid(
+                      plans: plans,
+                      currentWeek: currentWeek,
+                      isDark: isDark,
+                    ),
+                  ),
+                  crossFadeState: _weekGridExpanded
+                      ? CrossFadeState.showSecond
+                      : CrossFadeState.showFirst,
+                  duration: const Duration(milliseconds: 250),
                 ),
               ],
             ),
@@ -129,7 +229,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
   }
 }
 
-// Staggered slide-in animation wrapper
+// ── Staggered slide-in animation wrapper ──
+
 class _SlideIn extends StatelessWidget {
   final AnimationController controller;
   final double delay;
@@ -145,7 +246,7 @@ class _SlideIn extends StatelessWidget {
   Widget build(BuildContext context) {
     final animation = CurvedAnimation(
       parent: controller,
-      curve: Interval(delay, min(delay + 0.5, 1.0), curve: Curves.easeOutCubic),
+      curve: Interval(delay, (delay + 0.5).clamp(0, 1), curve: Curves.easeOutCubic),
     );
     return AnimatedBuilder(
       listenable: animation,
@@ -175,108 +276,155 @@ class AnimatedBuilder extends AnimatedWidget {
   Widget build(BuildContext context) => builder(context, null);
 }
 
-class _ProgressHeroCard extends StatelessWidget {
-  final double progress;
-  final int streak;
-  final int examCountdown;
+// ── 1. Mission Header ──
+
+class _MissionHeader extends StatelessWidget {
+  final DayType dayType;
+  final TimeContext timeContext;
+  final PhaseColors? phaseColors;
   final bool isDark;
 
-  const _ProgressHeroCard({
-    required this.progress,
-    required this.streak,
-    required this.examCountdown,
+  const _MissionHeader({
+    required this.dayType,
+    required this.timeContext,
+    required this.phaseColors,
     required this.isDark,
   });
 
   @override
   Widget build(BuildContext context) {
-    final primary = Theme.of(context).colorScheme.primary;
+    final (label, icon) = switch (dayType) {
+      DayType.buildFriday => ('BUILD FRIDAY', Icons.build),
+      DayType.deploySaturday => ('DEPLOY SATURDAY', Icons.rocket_launch),
+      DayType.studyNight => ('STUDY NIGHT', Icons.menu_book),
+    };
+
+    final subtitle = switch (timeContext) {
+      TimeContext.morning => 'Good morning',
+      TimeContext.afternoon => 'Afternoon push',
+      TimeContext.evening => 'Evening push',
+      TimeContext.lateNight => 'Late night grind',
+    };
+
+    final accentColor = phaseColors?.border ?? Theme.of(context).colorScheme.primary;
+
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: isDark
-              ? [
-                  primary.withValues(alpha: 0.15),
-                  primary.withValues(alpha: 0.05),
-                ]
-              : [
-                  primary.withValues(alpha: 0.08),
-                  primary.withValues(alpha: 0.02),
-                ],
+          colors: [
+            accentColor.withValues(alpha: isDark ? 0.2 : 0.1),
+            accentColor.withValues(alpha: isDark ? 0.05 : 0.02),
+          ],
         ),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: primary.withValues(alpha: isDark ? 0.2 : 0.15),
+          color: accentColor.withValues(alpha: isDark ? 0.3 : 0.2),
         ),
       ),
       child: Row(
         children: [
-          TweenAnimationBuilder<double>(
-            tween: Tween(begin: 0, end: progress),
-            duration: const Duration(milliseconds: 1200),
-            curve: Curves.easeOutCubic,
-            builder: (context, value, _) {
-              return ProgressRing(
-                progress: value,
-                size: 90,
-                strokeWidth: 8,
-                color: primary,
-                child: Text(
-                  '${(value * 100).round()}%',
-                  style: GoogleFonts.jetBrainsMono(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              );
-            },
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: accentColor.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(icon, size: 28, color: accentColor),
           ),
-          const SizedBox(width: 24),
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Battle Plan',
+                  label,
                   style: GoogleFonts.jetBrainsMono(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1,
+                    color: accentColor,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '10-Week Cloud Engineering',
+                  subtitle,
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: 13,
                     color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
                   ),
-                ),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
-                  children: [
-                    _GlassChip(
-                      icon: Icons.local_fire_department,
-                      label: '$streak day${streak == 1 ? '' : 's'}',
-                      color: Colors.orange,
-                    ),
-                    if (examCountdown >= 0)
-                      _GlassChip(
-                        icon: Icons.event,
-                        label: '${examCountdown}d to exam',
-                        color: Colors.red.shade400,
-                      ),
-                  ],
                 ),
               ],
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+// ── 2. Quick Stats Row ──
+
+class _QuickStatsRow extends StatelessWidget {
+  final double overallProgress;
+  final int streak;
+  final int examCountdown;
+  final int todayDone;
+  final int todayTotal;
+  final DayType dayType;
+  final bool isDark;
+
+  const _QuickStatsRow({
+    required this.overallProgress,
+    required this.streak,
+    required this.examCountdown,
+    required this.todayDone,
+    required this.todayTotal,
+    required this.dayType,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: _GlassChip(
+            icon: Icons.trending_up,
+            label: '${(overallProgress * 100).round()}%',
+            color: Theme.of(context).colorScheme.primary,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: _GlassChip(
+            icon: Icons.local_fire_department,
+            label: '$streak day${streak == 1 ? '' : 's'}',
+            color: Colors.orange,
+          ),
+        ),
+        const SizedBox(width: 8),
+        if (examCountdown >= 0) ...[
+          Expanded(
+            child: _GlassChip(
+              icon: Icons.event,
+              label: '${examCountdown}d',
+              color: Colors.red.shade400,
+            ),
+          ),
+          const SizedBox(width: 8),
+        ],
+        if (dayType != DayType.studyNight)
+          Expanded(
+            child: _GlassChip(
+              icon: Icons.check_circle_outline,
+              label: '$todayDone/$todayTotal',
+              color: Colors.green,
+            ),
+          ),
+      ],
     );
   }
 }
@@ -295,23 +443,128 @@ class _GlassChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(20),
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: color.withValues(alpha: 0.2)),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
+      child: Column(
         children: [
-          Icon(icon, size: 13, color: color),
-          const SizedBox(width: 4),
+          Icon(icon, size: 16, color: color),
+          const SizedBox(height: 3),
           Text(
             label,
             style: GoogleFonts.jetBrainsMono(
               fontSize: 11,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w700,
               color: color,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── 3A. Today's Tasks Card (Fri/Sat) ──
+
+class _TodayTasksCard extends ConsumerWidget {
+  final DayType dayType;
+  final dynamic weekPlan;
+  final Set<String> completedIds;
+  final int todayDone;
+  final int todayTotal;
+  final PhaseColors? phaseColors;
+  final bool isDark;
+
+  const _TodayTasksCard({
+    required this.dayType,
+    required this.weekPlan,
+    required this.completedIds,
+    required this.todayDone,
+    required this.todayTotal,
+    required this.phaseColors,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (weekPlan == null) return const SizedBox.shrink();
+
+    final tasks = dayType == DayType.buildFriday
+        ? weekPlan.fridayTasks
+        : weekPlan.saturdayTasks;
+    final dayLabel = dayType == DayType.buildFriday
+        ? 'Friday Build Tasks'
+        : 'Saturday Deploy Tasks';
+    final colors = phaseColors ??
+        const PhaseColors(
+          bg: Color(0xFFEFF6FF),
+          border: Color(0xFF0EA5E9),
+          text: Color(0xFF0369A1),
+        );
+
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: colors.border.withValues(alpha: 0.3)),
+        color: isDark
+            ? Colors.white.withValues(alpha: 0.03)
+            : colors.bg.withValues(alpha: 0.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+            child: Row(
+              children: [
+                Text(
+                  dayLabel,
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: colors.text,
+                  ),
+                ),
+                const Spacer(),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: todayDone == todayTotal && todayTotal > 0
+                        ? Colors.green.withValues(alpha: 0.15)
+                        : colors.border.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '$todayDone/$todayTotal',
+                    style: GoogleFonts.jetBrainsMono(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: todayDone == todayTotal && todayTotal > 0
+                          ? Colors.green
+                          : colors.border,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+          // Task list
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+            child: TaskChecklist(
+              tasks: tasks,
+              weekNumber: weekPlan.weekNumber,
+              completedIds: completedIds,
+              colors: colors,
+              compact: true,
             ),
           ),
         ],
@@ -319,6 +572,191 @@ class _GlassChip extends StatelessWidget {
     );
   }
 }
+
+// ── 3B. SAA Session Card (Sun-Thu) ──
+
+class _SaaSessionCard extends StatelessWidget {
+  final String topic;
+  final String schedule;
+  final PhaseColors? phaseColors;
+  final bool isDark;
+
+  const _SaaSessionCard({
+    required this.topic,
+    required this.schedule,
+    required this.phaseColors,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final accentColor =
+        phaseColors?.border ?? Theme.of(context).colorScheme.primary;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: accentColor.withValues(alpha: 0.2),
+        ),
+        color: isDark
+            ? Colors.white.withValues(alpha: 0.03)
+            : Colors.grey.shade50,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: accentColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(Icons.menu_book, size: 20, color: accentColor),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Tonight's SAA-C03 Session",
+                      style: GoogleFonts.jetBrainsMono(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '25 min focused study',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDark
+                            ? Colors.grey.shade500
+                            : Colors.grey.shade600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (topic.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Text(
+              'TOPIC',
+              style: GoogleFonts.jetBrainsMono(
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                color: accentColor,
+                letterSpacing: 1,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              topic,
+              style: TextStyle(
+                fontSize: 13,
+                height: 1.5,
+                color: isDark ? Colors.grey.shade300 : Colors.grey.shade800,
+              ),
+            ),
+          ],
+          if (schedule.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Text(
+              'SCHEDULE',
+              style: GoogleFonts.jetBrainsMono(
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                color: accentColor,
+                letterSpacing: 1,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              schedule,
+              style: TextStyle(
+                fontSize: 13,
+                height: 1.5,
+                color: isDark ? Colors.grey.shade300 : Colors.grey.shade800,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+// ── 4. Motivation Card ──
+
+class _MotivationCard extends StatelessWidget {
+  final String quote;
+  final PhaseColors? phaseColors;
+  final bool isDark;
+  final VoidCallback onRefresh;
+
+  const _MotivationCard({
+    required this.quote,
+    required this.phaseColors,
+    required this.isDark,
+    required this.onRefresh,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final accentColor =
+        phaseColors?.border ?? Theme.of(context).colorScheme.primary;
+
+    return GestureDetector(
+      onTap: onRefresh,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              accentColor.withValues(alpha: isDark ? 0.15 : 0.08),
+              accentColor.withValues(alpha: isDark ? 0.05 : 0.02),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: accentColor.withValues(alpha: 0.15),
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.format_quote,
+              size: 20,
+              color: accentColor.withValues(alpha: 0.5),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                quote,
+                style: GoogleFonts.jetBrainsMono(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  height: 1.5,
+                  color: isDark ? Colors.grey.shade300 : Colors.grey.shade700,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── 5. Current Week Card ──
 
 class _CurrentWeekCard extends StatelessWidget {
   final dynamic plan;
@@ -345,7 +783,6 @@ class _CurrentWeekCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          // Top accent bar
           Container(
             height: 4,
             decoration: BoxDecoration(
@@ -356,7 +793,7 @@ class _CurrentWeekCard extends StatelessWidget {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(14),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -400,23 +837,15 @@ class _CurrentWeekCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 8),
                 Text(
                   plan.title,
                   style: GoogleFonts.jetBrainsMono(
-                    fontSize: 16,
+                    fontSize: 15,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  plan.tagline,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
-                  ),
-                ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 10),
                 TweenAnimationBuilder<double>(
                   tween: Tween(begin: 0, end: weekProgress),
                   duration: const Duration(milliseconds: 1000),
@@ -426,7 +855,7 @@ class _CurrentWeekCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(4),
                       child: LinearProgressIndicator(
                         value: value,
-                        minHeight: 6,
+                        minHeight: 5,
                         backgroundColor: colors.border.withValues(alpha: 0.12),
                         valueColor: AlwaysStoppedAnimation(colors.border),
                       ),
@@ -442,94 +871,7 @@ class _CurrentWeekCard extends StatelessWidget {
   }
 }
 
-class _NextSessionCard extends StatelessWidget {
-  final dynamic weekPlan;
-  final bool isDark;
-
-  const _NextSessionCard({required this.weekPlan, required this.isDark});
-
-  @override
-  Widget build(BuildContext context) {
-    if (weekPlan == null) return const SizedBox.shrink();
-
-    final (icon, label, subtitle) = _getNextSession();
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.08)
-              : Colors.grey.shade200,
-        ),
-        color: isDark
-            ? Colors.white.withValues(alpha: 0.03)
-            : Colors.grey.shade50,
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: Theme.of(
-                context,
-              ).colorScheme.primary.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(
-              icon,
-              size: 22,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: GoogleFonts.jetBrainsMono(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: isDark ? Colors.grey.shade500 : Colors.grey.shade600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  (IconData, String, String) _getNextSession() {
-    final now = DateTime.now();
-    // Build days: Friday (build) & Saturday (deploy/test)
-    // Study nights: Sun-Thu evenings (SAA-C03)
-    return switch (now.weekday) {
-      DateTime.friday => (
-        Icons.build,
-        'Today (Friday)',
-        weekPlan.tagline as String,
-      ),
-      DateTime.saturday => (
-        Icons.rocket_launch,
-        'Today (Saturday)',
-        weekPlan.tagline as String,
-      ),
-      _ => (Icons.menu_book, 'Study Night', 'SAA-C03 session tonight'),
-    };
-  }
-}
+// ── 6. Week Grid ──
 
 class _WeekGrid extends ConsumerWidget {
   final List plans;

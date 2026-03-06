@@ -1,7 +1,12 @@
 import WidgetKit
 import SwiftUI
 
-// MARK: - Data Model
+// MARK: - Data Models
+
+struct WidgetTask: Codable {
+    let text: String
+    let completed: Bool
+}
 
 struct WidgetData: Codable {
     let overallProgress: Double
@@ -16,6 +21,19 @@ struct WidgetData: Codable {
     let examDaysLeft: Int
     let motivation: String
     let updatedAt: String
+
+    // New fields with backward-compatible defaults
+    let streak: Int?
+    let dayType: String?
+    let saaTopic: String?
+    let todayTasks: [WidgetTask]?
+    let nextTask: String?
+
+    var safeStreak: Int { streak ?? 0 }
+    var safeDayType: String { dayType ?? "weeknight" }
+    var safeTodayTasks: [WidgetTask] { todayTasks ?? [] }
+    var safeNextTask: String { nextTask ?? "" }
+    var safeSaaTopic: String { saaTopic ?? "" }
 }
 
 // MARK: - Timeline Provider
@@ -34,7 +52,6 @@ struct CloudStudyProvider: TimelineProvider {
     func getTimeline(in context: Context, completion: @escaping (Timeline<CloudStudyEntry>) -> Void) {
         let data = loadData()
         let entry = CloudStudyEntry(date: Date(), data: data)
-        // Update every 30 minutes for fresh motivation messages
         let nextUpdate = Calendar.current.date(byAdding: .minute, value: 30, to: Date())!
         let timeline = Timeline(entries: [entry], policy: .after(nextUpdate))
         completion(timeline)
@@ -63,7 +80,12 @@ struct CloudStudyProvider: TimelineProvider {
             weekTotal: 9,
             examDaysLeft: 49,
             motivation: "Open the app. Set your start date. Begin.",
-            updatedAt: ""
+            updatedAt: "",
+            streak: 0,
+            dayType: "weeknight",
+            saaTopic: "AWS fundamentals",
+            todayTasks: [],
+            nextTask: ""
         )
     }
 }
@@ -99,7 +121,23 @@ func phaseBg(_ phase: String) -> Color {
     }
 }
 
-// MARK: - Small Widget
+func dayTypeLabel(_ dayType: String) -> String {
+    switch dayType {
+    case "friday": return "BUILD FRIDAY"
+    case "saturday": return "DEPLOY SATURDAY"
+    default: return "STUDY NIGHT"
+    }
+}
+
+func dayTypeIcon(_ dayType: String) -> String {
+    switch dayType {
+    case "friday": return "hammer.fill"
+    case "saturday": return "paperplane.fill"
+    default: return "book.fill"
+    }
+}
+
+// MARK: - Small Widget (Overview)
 
 struct SmallWidgetView: View {
     let data: WidgetData
@@ -131,7 +169,6 @@ struct SmallWidgetView: View {
 
             Spacer()
 
-            // Progress bar
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     RoundedRectangle(cornerRadius: 3)
@@ -165,7 +202,6 @@ struct MediumWidgetView: View {
         let color = phaseColor(data.weekPhase)
 
         HStack(spacing: 16) {
-            // Left: progress ring
             ZStack {
                 Circle()
                     .stroke(color.opacity(0.15), lineWidth: 6)
@@ -221,7 +257,6 @@ struct MediumWidgetView: View {
 
                 Spacer()
 
-                // Progress bar
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
                         RoundedRectangle(cornerRadius: 3)
@@ -243,15 +278,17 @@ struct MediumWidgetView: View {
     }
 }
 
-// MARK: - Large Widget
+// MARK: - Large Widget (now shows today's tasks)
 
 struct LargeWidgetView: View {
     let data: WidgetData
 
     var body: some View {
         let color = phaseColor(data.weekPhase)
+        let tasks = data.safeTodayTasks
+        let todayDone = tasks.filter { $0.completed }.count
 
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 10) {
             // Header
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
@@ -260,8 +297,9 @@ struct LargeWidgetView: View {
                         .foregroundColor(.secondary)
                         .tracking(2)
 
-                    Text("10-Week Battle Plan")
+                    Text(dayTypeLabel(data.safeDayType))
                         .font(.system(size: 14, weight: .bold, design: .monospaced))
+                        .foregroundColor(color)
                 }
 
                 Spacer()
@@ -269,16 +307,16 @@ struct LargeWidgetView: View {
                 ZStack {
                     Circle()
                         .stroke(color.opacity(0.15), lineWidth: 5)
-                        .frame(width: 50, height: 50)
+                        .frame(width: 46, height: 46)
 
                     Circle()
                         .trim(from: 0, to: data.overallProgress)
                         .stroke(color, style: StrokeStyle(lineWidth: 5, lineCap: .round))
-                        .frame(width: 50, height: 50)
+                        .frame(width: 46, height: 46)
                         .rotationEffect(.degrees(-90))
 
                     Text("\(Int(data.overallProgress * 100))%")
-                        .font(.system(size: 13, weight: .bold, design: .monospaced))
+                        .font(.system(size: 12, weight: .bold, design: .monospaced))
                 }
             }
 
@@ -304,43 +342,61 @@ struct LargeWidgetView: View {
 
                 Spacer()
 
-                Text("\(data.weekCompleted)/\(data.weekTotal)")
-                    .font(.system(size: 13, weight: .bold, design: .monospaced))
-                    .foregroundColor(color)
-            }
-
-            Text(data.weekTitle)
-                .font(.system(size: 15, weight: .bold, design: .monospaced))
-
-            // Progress bar
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: 3)
-                        .fill(color.opacity(0.12))
-                        .frame(height: 6)
-
-                    RoundedRectangle(cornerRadius: 3)
-                        .fill(color)
-                        .frame(width: geo.size.width * data.weekProgress, height: 6)
+                if !tasks.isEmpty {
+                    Text("\(todayDone)/\(tasks.count) today")
+                        .font(.system(size: 11, weight: .bold, design: .monospaced))
+                        .foregroundColor(todayDone == tasks.count ? .green : color)
+                } else {
+                    Text("\(data.weekCompleted)/\(data.weekTotal)")
+                        .font(.system(size: 13, weight: .bold, design: .monospaced))
+                        .foregroundColor(color)
                 }
             }
-            .frame(height: 6)
 
-            Divider()
+            // Tasks or SAA topic
+            if !tasks.isEmpty {
+                VStack(alignment: .leading, spacing: 4) {
+                    ForEach(Array(tasks.prefix(6).enumerated()), id: \.offset) { _, task in
+                        HStack(spacing: 6) {
+                            Image(systemName: task.completed ? "checkmark.circle.fill" : "circle")
+                                .font(.system(size: 12))
+                                .foregroundColor(task.completed ? .green : color.opacity(0.5))
 
-            // Motivation
-            Text(data.motivation)
-                .font(.system(size: 13, weight: .medium))
-                .foregroundColor(.primary)
-                .lineLimit(3)
+                            Text(task.text)
+                                .font(.system(size: 11, weight: .medium))
+                                .lineLimit(1)
+                                .foregroundColor(task.completed ? .secondary : .primary)
+                                .strikethrough(task.completed)
+                        }
+                    }
+                    if tasks.count > 6 {
+                        Text("+\(tasks.count - 6) more")
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundColor(.secondary)
+                    }
+                }
+            } else {
+                // Weeknight: show SAA topic
+                if !data.safeSaaTopic.isEmpty {
+                    Text(data.safeSaaTopic)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(.primary)
+                        .lineLimit(3)
+                }
+
+                Text(data.motivation)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(.secondary)
+                    .lineLimit(2)
+            }
 
             Spacer()
 
-            // Stats
-            HStack(spacing: 16) {
-                _StatView(label: "Tasks", value: "\(data.completedTasks)/\(data.totalTasks)", color: .blue)
-                _StatView(label: "Exam", value: data.examDaysLeft >= 0 ? "\(data.examDaysLeft)d" : "—", color: .red)
-                _StatView(label: "Week", value: "\(data.currentWeek)/10", color: color)
+            // Stats row
+            HStack(spacing: 12) {
+                StatChip(label: "Streak", value: "\(data.safeStreak)", icon: "flame.fill", color: .orange)
+                StatChip(label: "Exam", value: data.examDaysLeft >= 0 ? "\(data.examDaysLeft)d" : "-", icon: "calendar", color: .red)
+                StatChip(label: "Week", value: "\(data.currentWeek)/10", icon: "chart.bar.fill", color: color)
             }
         }
         .padding(16)
@@ -350,24 +406,138 @@ struct LargeWidgetView: View {
     }
 }
 
-struct _StatView: View {
+struct StatChip: View {
     let label: String
     let value: String
+    let icon: String
     let color: Color
 
     var body: some View {
         VStack(spacing: 2) {
-            Text(value)
-                .font(.system(size: 14, weight: .bold, design: .monospaced))
-                .foregroundColor(color)
+            HStack(spacing: 3) {
+                Image(systemName: icon)
+                    .font(.system(size: 9))
+                    .foregroundColor(color)
+                Text(value)
+                    .font(.system(size: 12, weight: .bold, design: .monospaced))
+                    .foregroundColor(color)
+            }
             Text(label)
-                .font(.system(size: 9, weight: .medium))
+                .font(.system(size: 8, weight: .medium))
                 .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 6)
+        .padding(.vertical, 5)
         .background(color.opacity(0.08))
         .cornerRadius(8)
+    }
+}
+
+// MARK: - Next Task Widget (Small)
+
+struct NextTaskWidgetView: View {
+    let data: WidgetData
+
+    var body: some View {
+        let color = phaseColor(data.weekPhase)
+        let nextTask = data.safeNextTask
+
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Image(systemName: dayTypeIcon(data.safeDayType))
+                    .font(.system(size: 12))
+                    .foregroundColor(color)
+                Text(data.weekPhase)
+                    .font(.system(size: 9, weight: .bold, design: .monospaced))
+                    .foregroundColor(color)
+            }
+            .padding(.horizontal, 6)
+            .padding(.vertical, 3)
+            .background(color.opacity(0.1))
+            .cornerRadius(4)
+
+            Text("NEXT UP")
+                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                .foregroundColor(.secondary)
+                .tracking(1)
+
+            if nextTask.isEmpty {
+                Text("All done!")
+                    .font(.system(size: 13, weight: .bold, design: .monospaced))
+                    .foregroundColor(.green)
+            } else {
+                Text(nextTask)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(.primary)
+                    .lineLimit(3)
+            }
+
+            Spacer()
+        }
+        .padding(14)
+        .containerBackground(for: .widget) {
+            Color(.systemBackground)
+        }
+    }
+}
+
+// MARK: - Streak Widget (Small)
+
+struct StreakWidgetView: View {
+    let data: WidgetData
+
+    var body: some View {
+        VStack(spacing: 4) {
+            Image(systemName: "flame.fill")
+                .font(.system(size: 28))
+                .foregroundColor(.orange)
+
+            Text("\(data.safeStreak)")
+                .font(.system(size: 32, weight: .bold, design: .monospaced))
+                .foregroundColor(.orange)
+
+            Text("day streak")
+                .font(.system(size: 10, weight: .medium, design: .monospaced))
+                .foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .containerBackground(for: .widget) {
+            Color(.systemBackground)
+        }
+    }
+}
+
+// MARK: - Motivation Widget (Small)
+
+struct MotivationWidgetView: View {
+    let data: WidgetData
+
+    var body: some View {
+        let color = phaseColor(data.weekPhase)
+
+        VStack(alignment: .leading, spacing: 8) {
+            Image(systemName: "quote.opening")
+                .font(.system(size: 14))
+                .foregroundColor(color.opacity(0.5))
+
+            Text(data.motivation)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundColor(.primary)
+                .lineLimit(4)
+
+            Spacer()
+
+            HStack {
+                Spacer()
+                Text("W\(data.currentWeek)")
+                    .font(.system(size: 9, weight: .bold, design: .monospaced))
+                    .foregroundColor(color)
+            }
+        }
+        .padding(14)
+        .containerBackground(for: .widget) {
+            color.opacity(0.05)
+        }
     }
 }
 
@@ -415,15 +585,69 @@ struct LockScreenInlineView: View {
     }
 }
 
-// MARK: - Widget Bundle
+// MARK: - Today Lock Screen Rectangular
+
+struct TodayLockRectView: View {
+    let data: WidgetData
+
+    var body: some View {
+        let tasks = data.safeTodayTasks
+        let todayDone = tasks.filter { $0.completed }.count
+        let todayTotal = max(tasks.count, 1)
+
+        VStack(alignment: .leading, spacing: 2) {
+            HStack {
+                Text(dayTypeLabel(data.safeDayType))
+                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+
+                Spacer()
+
+                if !tasks.isEmpty {
+                    Text("\(todayDone)/\(tasks.count)")
+                        .font(.system(size: 10, weight: .bold, design: .monospaced))
+                }
+            }
+
+            if !data.safeNextTask.isEmpty {
+                Text(data.safeNextTask)
+                    .font(.system(size: 11))
+                    .lineLimit(1)
+            } else {
+                Text("All tasks done!")
+                    .font(.system(size: 11))
+            }
+
+            Gauge(value: tasks.isEmpty ? data.weekProgress : Double(todayDone) / Double(todayTotal)) { }
+                .gaugeStyle(.accessoryLinear)
+        }
+    }
+}
+
+// MARK: - Widget Bundle (nested to support >4 widgets)
 
 @main
 struct CloudStudyWidgets: WidgetBundle {
     var body: some Widget {
+        HomeWidgets()
+        LockWidgets()
+    }
+}
+
+struct HomeWidgets: WidgetBundle {
+    var body: some Widget {
         CloudStudyMainWidget()
+        CloudStudyNextTaskWidget()
+        CloudStudyStreakWidget()
+        CloudStudyMotivationWidget()
+    }
+}
+
+struct LockWidgets: WidgetBundle {
+    var body: some Widget {
         CloudStudyLockCircular()
         CloudStudyLockRectangular()
         CloudStudyLockInline()
+        CloudStudyTodayLockRect()
     }
 }
 
@@ -457,6 +681,45 @@ struct CloudStudyWidgetEntryView: View {
         default:
             SmallWidgetView(data: entry.data)
         }
+    }
+}
+
+// MARK: - Next Task Widget
+
+struct CloudStudyNextTaskWidget: Widget {
+    var body: some WidgetConfiguration {
+        StaticConfiguration(kind: "CloudStudyNextTask", provider: CloudStudyProvider()) { entry in
+            NextTaskWidgetView(data: entry.data)
+        }
+        .configurationDisplayName("Next Task")
+        .description("Your next uncompleted task")
+        .supportedFamilies([.systemSmall])
+    }
+}
+
+// MARK: - Streak Widget
+
+struct CloudStudyStreakWidget: Widget {
+    var body: some WidgetConfiguration {
+        StaticConfiguration(kind: "CloudStudyStreak", provider: CloudStudyProvider()) { entry in
+            StreakWidgetView(data: entry.data)
+        }
+        .configurationDisplayName("Streak")
+        .description("Your study streak")
+        .supportedFamilies([.systemSmall])
+    }
+}
+
+// MARK: - Motivation Widget
+
+struct CloudStudyMotivationWidget: Widget {
+    var body: some WidgetConfiguration {
+        StaticConfiguration(kind: "CloudStudyMotivation", provider: CloudStudyProvider()) { entry in
+            MotivationWidgetView(data: entry.data)
+        }
+        .configurationDisplayName("Motivation")
+        .description("Toxic motivation to keep you going")
+        .supportedFamilies([.systemSmall])
     }
 }
 
@@ -495,6 +758,17 @@ struct CloudStudyLockInline: Widget {
     }
 }
 
+struct CloudStudyTodayLockRect: Widget {
+    var body: some WidgetConfiguration {
+        StaticConfiguration(kind: "CloudStudyTodayLockRect", provider: CloudStudyProvider()) { entry in
+            TodayLockRectView(data: entry.data)
+        }
+        .configurationDisplayName("Today's Progress")
+        .description("Today's tasks and next task")
+        .supportedFamilies([.accessoryRectangular])
+    }
+}
+
 // MARK: - Color Extension
 
 extension Color {
@@ -527,7 +801,15 @@ extension Color {
         weekTotal: 9,
         examDaysLeft: 21,
         motivation: "From git push to production in 4 minutes.",
-        updatedAt: ""
+        updatedAt: "",
+        streak: 5,
+        dayType: "friday",
+        saaTopic: nil,
+        todayTasks: [
+            WidgetTask(text: "Set up GitHub Actions workflow", completed: true),
+            WidgetTask(text: "Add Docker build step", completed: false),
+        ],
+        nextTask: "Add Docker build step"
     ))
 }
 
@@ -546,6 +828,11 @@ extension Color {
         weekTotal: 9,
         examDaysLeft: 21,
         motivation: "It's study time. Open the course. NOW.",
-        updatedAt: ""
+        updatedAt: "",
+        streak: 5,
+        dayType: "friday",
+        saaTopic: nil,
+        todayTasks: nil,
+        nextTask: nil
     ))
 }

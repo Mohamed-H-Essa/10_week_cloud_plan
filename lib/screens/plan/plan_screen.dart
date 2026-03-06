@@ -7,6 +7,7 @@ import '../../providers/progress_provider.dart';
 import '../../shared/constants/phase_colors.dart';
 import '../../shared/widgets/phase_badge.dart';
 import '../../screens/edit/edit_week_screen.dart';
+import '../../shared/widgets/task_checklist.dart';
 
 class PlanScreen extends ConsumerStatefulWidget {
   const PlanScreen({super.key});
@@ -298,7 +299,7 @@ class _WeekCard extends ConsumerWidget {
                       isExpanded: expandedSections['friday'] ?? false,
                       onToggle: onToggleSection,
                       colors: colors,
-                      child: _TaskList(
+                      child: TaskChecklist(
                         tasks: plan.fridayTasks,
                         weekNumber: plan.weekNumber,
                         completedIds: completed,
@@ -312,7 +313,7 @@ class _WeekCard extends ConsumerWidget {
                       isExpanded: expandedSections['saturday'] ?? false,
                       onToggle: onToggleSection,
                       colors: colors,
-                      child: _TaskList(
+                      child: TaskChecklist(
                         tasks: plan.saturdayTasks,
                         weekNumber: plan.weekNumber,
                         completedIds: completed,
@@ -320,7 +321,7 @@ class _WeekCard extends ConsumerWidget {
                       ),
                     ),
                     _ExpandableSection(
-                      title: 'Weeknight Study (Mon-Fri)',
+                      title: 'Weeknight Study (Sun-Thu)',
                       icon: Icons.menu_book,
                       sectionKey: 'weeknights',
                       isExpanded: expandedSections['weeknights'] ?? false,
@@ -549,76 +550,7 @@ class _ExpandableSection extends StatelessWidget {
   }
 }
 
-class _TaskList extends ConsumerWidget {
-  final List tasks;
-  final int weekNumber;
-  final Set<String> completedIds;
-  final PhaseColors colors;
-
-  const _TaskList({
-    required this.tasks,
-    required this.weekNumber,
-    required this.completedIds,
-    required this.colors,
-  });
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Column(
-      children: tasks.map<Widget>((task) {
-        final isDone = completedIds.contains(task.id);
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 8),
-          child: InkWell(
-            onTap: () => ref
-                .read(completedTaskIdsProvider.notifier)
-                .toggle(task.id, weekNumber),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(top: 2),
-                  child: SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: Checkbox(
-                      value: isDone,
-                      onChanged: (_) => ref
-                          .read(completedTaskIdsProvider.notifier)
-                          .toggle(task.id, weekNumber),
-                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      visualDensity: VisualDensity.compact,
-                      activeColor: colors.border,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    task.text,
-                    style: TextStyle(
-                      fontSize: 13,
-                      height: 1.5,
-                      color: isDone
-                          ? (isDark
-                                ? Colors.grey.shade600
-                                : Colors.grey.shade400)
-                          : (isDark
-                                ? Colors.grey.shade300
-                                : Colors.grey.shade800),
-                      decoration: isDone ? TextDecoration.lineThrough : null,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      }).toList(),
-    );
-  }
-}
+// _TaskList removed — uses shared TaskChecklist widget
 
 class _MetaRow extends StatelessWidget {
   final String label;

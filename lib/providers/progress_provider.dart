@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/widget_service.dart';
+import 'behavior_provider.dart';
 import 'repositories_provider.dart';
 import 'study_plan_provider.dart';
 
@@ -22,6 +23,16 @@ class CompletedTaskIdsNotifier extends StateNotifier<Set<String>> {
     await _ref.read(progressRepoProvider).toggleTask(taskId, weekNumber);
     _load();
     _updateWidgets();
+    _recordBehavior();
+  }
+
+  void _recordBehavior() {
+    try {
+      _ref.read(behaviorRepoProvider).recordTaskCompletion();
+    } catch (_) {}
+    try {
+      _ref.read(smartNotificationProvider).reschedule();
+    } catch (_) {}
   }
 
   void _updateWidgets() {
@@ -33,11 +44,35 @@ class CompletedTaskIdsNotifier extends StateNotifier<Set<String>> {
       if (startDate != null) {
         currentWeek = ((DateTime.now().difference(startDate).inDays / 7).floor() + 1).clamp(1, 10);
       }
+
+      // Calculate streak for widget
+      final entries = _ref.read(progressRepoProvider).allEntries();
+      int streak = 0;
+      if (entries.isNotEmpty) {
+        final days = <DateTime>{};
+        for (final e in entries) {
+          days.add(DateTime(e.completedAt.year, e.completedAt.month, e.completedAt.day));
+        }
+        final sortedDays = days.toList()..sort((a, b) => b.compareTo(a));
+        var check = DateTime.now();
+        check = DateTime(check.year, check.month, check.day);
+        for (final day in sortedDays) {
+          final diff = check.difference(day).inDays;
+          if (diff <= 1) {
+            streak++;
+            check = day;
+          } else {
+            break;
+          }
+        }
+      }
+
       WidgetService.updateWidgets(
         plans: plans,
         progressRepo: _ref.read(progressRepoProvider),
         currentWeek: currentWeek,
         planStartDate: startDate,
+        streak: streak,
       );
     } catch (_) {}
   }
