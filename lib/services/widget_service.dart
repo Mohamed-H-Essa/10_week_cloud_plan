@@ -148,4 +148,64 @@ class WidgetService {
     }
     return "Almost there. Finish what you started.";
   }
+
+  // ── Live Activity (Dynamic Island) ──
+
+  /// Start a Live Activity for the current study session.
+  /// [sessionType]: "build", "deploy", or "study"
+  static Future<void> startLiveActivity({
+    required String sessionType,
+    required int weekNumber,
+    required String weekTitle,
+    required String phase,
+    required int totalMinutes,
+    required int tasksCompleted,
+    required int tasksTotal,
+  }) async {
+    try {
+      await _channel.invokeMethod('startLiveActivity', {
+        'sessionType': sessionType,
+        'weekNumber': weekNumber,
+        'weekTitle': weekTitle,
+        'phase': phase,
+        'totalMinutes': totalMinutes,
+        'elapsedMinutes': 0,
+        'tasksCompleted': tasksCompleted,
+        'tasksTotal': tasksTotal,
+        'motivation': _getMotivation(weekNumber, 0),
+      });
+    } catch (e) {
+      // Best-effort
+    }
+  }
+
+  /// Update the Live Activity with new elapsed time / task count.
+  static Future<void> updateLiveActivity({
+    required int elapsedMinutes,
+    required int totalMinutes,
+    required int tasksCompleted,
+    required int tasksTotal,
+    required String motivation,
+  }) async {
+    try {
+      await _channel.invokeMethod('updateLiveActivity', {
+        'elapsedMinutes': elapsedMinutes,
+        'totalMinutes': totalMinutes,
+        'tasksCompleted': tasksCompleted,
+        'tasksTotal': tasksTotal,
+        'motivation': motivation,
+      });
+    } catch (e) {
+      // Best-effort
+    }
+  }
+
+  /// End the Live Activity.
+  static Future<void> endLiveActivity() async {
+    try {
+      await _channel.invokeMethod('endLiveActivity');
+    } catch (e) {
+      // Best-effort
+    }
+  }
 }
