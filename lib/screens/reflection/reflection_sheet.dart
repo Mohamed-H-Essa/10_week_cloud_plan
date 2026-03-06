@@ -31,9 +31,13 @@ class _ReflectionSheetState extends ConsumerState<ReflectionSheet> {
   @override
   void initState() {
     super.initState();
-    final existing = ref.read(reflectionRepoProvider).getForWeek(widget.weekNumber);
+    final existing = ref
+        .read(reflectionRepoProvider)
+        .getForWeek(widget.weekNumber);
     _wentWellController = TextEditingController(text: existing?.wentWell ?? '');
-    _toImproveController = TextEditingController(text: existing?.toImprove ?? '');
+    _toImproveController = TextEditingController(
+      text: existing?.toImprove ?? '',
+    );
   }
 
   @override
@@ -44,12 +48,16 @@ class _ReflectionSheetState extends ConsumerState<ReflectionSheet> {
   }
 
   Future<void> _save() async {
-    await ref.read(reflectionRepoProvider).save(Reflection(
-      weekNumber: widget.weekNumber,
-      wentWell: _wentWellController.text,
-      toImprove: _toImproveController.text,
-      createdAt: DateTime.now(),
-    ));
+    await ref
+        .read(reflectionRepoProvider)
+        .save(
+          Reflection(
+            weekNumber: widget.weekNumber,
+            wentWell: _wentWellController.text,
+            toImprove: _toImproveController.text,
+            createdAt: DateTime.now(),
+          ),
+        );
     if (mounted) Navigator.pop(context);
   }
 
@@ -71,7 +79,9 @@ class _ReflectionSheetState extends ConsumerState<ReflectionSheet> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.grey.shade300,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.grey.shade600
+                    : Colors.grey.shade300,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -79,31 +89,54 @@ class _ReflectionSheetState extends ConsumerState<ReflectionSheet> {
           const SizedBox(height: 16),
           Text(
             'Week ${widget.weekNumber} Reflection',
-            style: GoogleFonts.jetBrainsMono(fontSize: 18, fontWeight: FontWeight.w700),
+            style: GoogleFonts.jetBrainsMono(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+            ),
           ),
           const SizedBox(height: 16),
-          Text('What went well?',
-              style: GoogleFonts.jetBrainsMono(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.green.shade700)),
+          Text(
+            'What went well?',
+            style: GoogleFonts.jetBrainsMono(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.green.shade300
+                  : Colors.green.shade700,
+            ),
+          ),
           const SizedBox(height: 8),
           TextField(
             controller: _wentWellController,
             maxLines: 3,
             decoration: InputDecoration(
               hintText: 'Things that worked, wins, breakthroughs...',
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
               contentPadding: const EdgeInsets.all(12),
             ),
           ),
           const SizedBox(height: 16),
-          Text('What to improve?',
-              style: GoogleFonts.jetBrainsMono(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.orange.shade700)),
+          Text(
+            'What to improve?',
+            style: GoogleFonts.jetBrainsMono(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.orange.shade300
+                  : Colors.orange.shade700,
+            ),
+          ),
           const SizedBox(height: 8),
           TextField(
             controller: _toImproveController,
             maxLines: 3,
             decoration: InputDecoration(
               hintText: 'Blockers, things to do differently next time...',
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
               contentPadding: const EdgeInsets.all(12),
             ),
           ),

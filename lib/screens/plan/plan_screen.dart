@@ -37,7 +37,10 @@ class _PlanScreenState extends ConsumerState<PlanScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Study Plan', style: GoogleFonts.jetBrainsMono(fontWeight: FontWeight.w700)),
+        title: Text(
+          'Study Plan',
+          style: GoogleFonts.jetBrainsMono(fontWeight: FontWeight.w700),
+        ),
         actions: [
           PopupMenuButton<String>(
             onSelected: (value) {
@@ -46,7 +49,10 @@ class _PlanScreenState extends ConsumerState<PlanScreen> {
               }
             },
             itemBuilder: (_) => [
-              const PopupMenuItem(value: 'about', child: Text('About This Plan')),
+              const PopupMenuItem(
+                value: 'about',
+                child: Text('About This Plan'),
+              ),
             ],
           ),
         ],
@@ -91,9 +97,9 @@ class _PlanScreenState extends ConsumerState<PlanScreen> {
   }
 
   void _showAboutPlan(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const _AboutPlanScreen()),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const _AboutPlanScreen()));
   }
 }
 
@@ -102,10 +108,15 @@ class _WeekSelector extends StatelessWidget {
   final int selectedWeek;
   final ValueChanged<int> onSelect;
 
-  const _WeekSelector({required this.plans, required this.selectedWeek, required this.onSelect});
+  const _WeekSelector({
+    required this.plans,
+    required this.selectedWeek,
+    required this.onSelect,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return SizedBox(
       height: 48,
       child: ListView.separated(
@@ -116,7 +127,10 @@ class _WeekSelector extends StatelessWidget {
         itemBuilder: (context, i) {
           final plan = plans[i];
           final isSelected = plan.weekNumber == selectedWeek;
-          final colors = phaseColorMap[plan.phase];
+          final colors = getPhaseColors(
+            plan.phase,
+            Theme.of(context).brightness,
+          );
           return GestureDetector(
             onTap: () => onSelect(plan.weekNumber),
             child: AnimatedContainer(
@@ -125,7 +139,9 @@ class _WeekSelector extends StatelessWidget {
               decoration: BoxDecoration(
                 color: isSelected ? (colors?.bg ?? Colors.blue.shade50) : null,
                 border: Border.all(
-                  color: isSelected ? (colors?.border ?? Colors.blue) : Colors.grey.shade300,
+                  color: isSelected
+                      ? (colors?.border ?? Colors.blue)
+                      : (isDark ? Colors.grey.shade700 : Colors.grey.shade300),
                   width: isSelected ? 2 : 1,
                 ),
                 borderRadius: BorderRadius.circular(8),
@@ -135,7 +151,9 @@ class _WeekSelector extends StatelessWidget {
                 style: GoogleFonts.jetBrainsMono(
                   fontSize: 12,
                   fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                  color: isSelected ? (colors?.border ?? Colors.blue) : Colors.grey.shade600,
+                  color: isSelected
+                      ? (colors?.border ?? Colors.blue)
+                      : (isDark ? Colors.grey.shade400 : Colors.grey.shade600),
                 ),
               ),
             ),
@@ -161,9 +179,10 @@ class _WeekCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final colors = phaseColorMap[plan.phase]!;
+    final colors = getPhaseColors(plan.phase, Theme.of(context).brightness)!;
     final completed = ref.watch(completedTaskIdsProvider);
     final progress = ref.watch(weekProgressProvider(plan.weekNumber));
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -183,7 +202,9 @@ class _WeekCard extends ConsumerWidget {
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: colors.bg,
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(10),
+                  ),
                   border: Border(bottom: BorderSide(color: colors.border)),
                 ),
                 child: Column(
@@ -194,7 +215,10 @@ class _WeekCard extends ConsumerWidget {
                         PhaseBadge(phase: plan.phase),
                         const SizedBox(width: 8),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: colors.border,
                             borderRadius: BorderRadius.circular(4),
@@ -241,7 +265,9 @@ class _WeekCard extends ConsumerWidget {
                       plan.why,
                       style: TextStyle(
                         fontSize: 13,
-                        color: Colors.grey.shade700,
+                        color: isDark
+                            ? Colors.grey.shade400
+                            : Colors.grey.shade700,
                         fontStyle: FontStyle.italic,
                         height: 1.5,
                       ),
@@ -312,7 +338,10 @@ class _WeekCard extends ConsumerWidget {
                             ),
                           ),
                           const SizedBox(height: 4),
-                          Text(plan.weeknightSaa, style: const TextStyle(fontSize: 13, height: 1.5)),
+                          Text(
+                            plan.weeknightSaa,
+                            style: const TextStyle(fontSize: 13, height: 1.5),
+                          ),
                           const SizedBox(height: 12),
                           Text(
                             'SCHEDULE',
@@ -323,7 +352,10 @@ class _WeekCard extends ConsumerWidget {
                             ),
                           ),
                           const SizedBox(height: 4),
-                          Text(plan.weeknightSchedule, style: const TextStyle(fontSize: 13, height: 1.5)),
+                          Text(
+                            plan.weeknightSchedule,
+                            style: const TextStyle(fontSize: 13, height: 1.5),
+                          ),
                         ],
                       ),
                     ),
@@ -337,14 +369,24 @@ class _WeekCard extends ConsumerWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _MetaRow(label: 'Cost', value: plan.cost, colors: colors),
+                          _MetaRow(
+                            label: 'Cost',
+                            value: plan.cost,
+                            colors: colors,
+                          ),
                           const SizedBox(height: 8),
-                          _MetaRow(label: 'Output', value: plan.output, colors: colors),
+                          _MetaRow(
+                            label: 'Output',
+                            value: plan.output,
+                            colors: colors,
+                          ),
                           const SizedBox(height: 12),
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: Colors.grey.shade100,
+                              color: isDark
+                                  ? Colors.white.withValues(alpha: 0.06)
+                                  : Colors.grey.shade100,
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Column(
@@ -361,12 +403,21 @@ class _WeekCard extends ConsumerWidget {
                                 const SizedBox(height: 6),
                                 Text(
                                   '"${plan.linkedinPost}"',
-                                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
                                 const SizedBox(height: 6),
                                 Text(
                                   plan.linkedinAngle,
-                                  style: TextStyle(fontSize: 12.5, color: Colors.grey.shade700, height: 1.5),
+                                  style: TextStyle(
+                                    fontSize: 12.5,
+                                    color: isDark
+                                        ? Colors.grey.shade400
+                                        : Colors.grey.shade700,
+                                    height: 1.5,
+                                  ),
                                 ),
                               ],
                             ),
@@ -417,6 +468,7 @@ class _ExpandableSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Column(
@@ -427,15 +479,29 @@ class _ExpandableSection extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               decoration: BoxDecoration(
-                color: isExpanded ? colors.bg : Colors.grey.shade50,
+                color: isExpanded
+                    ? colors.bg
+                    : (isDark
+                          ? Colors.white.withValues(alpha: 0.04)
+                          : Colors.grey.shade50),
                 border: Border.all(
-                  color: isExpanded ? colors.border : Colors.grey.shade200,
+                  color: isExpanded
+                      ? colors.border
+                      : (isDark ? Colors.grey.shade700 : Colors.grey.shade200),
                 ),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
                 children: [
-                  Icon(icon, size: 16, color: isExpanded ? colors.text : Colors.grey.shade600),
+                  Icon(
+                    icon,
+                    size: 16,
+                    color: isExpanded
+                        ? colors.text
+                        : (isDark
+                              ? Colors.grey.shade400
+                              : Colors.grey.shade600),
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -443,7 +509,11 @@ class _ExpandableSection extends StatelessWidget {
                       style: GoogleFonts.jetBrainsMono(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
-                        color: isExpanded ? colors.text : Colors.grey.shade700,
+                        color: isExpanded
+                            ? colors.text
+                            : (isDark
+                                  ? Colors.grey.shade300
+                                  : Colors.grey.shade700),
                       ),
                     ),
                   ),
@@ -453,7 +523,9 @@ class _ExpandableSection extends StatelessWidget {
                     child: Icon(
                       Icons.keyboard_arrow_down,
                       size: 20,
-                      color: Colors.grey.shade400,
+                      color: isDark
+                          ? Colors.grey.shade500
+                          : Colors.grey.shade400,
                     ),
                   ),
                 ],
@@ -465,7 +537,9 @@ class _ExpandableSection extends StatelessWidget {
               margin: const EdgeInsets.only(left: 16, top: 4),
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                border: Border(left: BorderSide(color: colors.border, width: 2)),
+                border: Border(
+                  left: BorderSide(color: colors.border, width: 2),
+                ),
               ),
               child: child,
             ),
@@ -490,13 +564,16 @@ class _TaskList extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Column(
       children: tasks.map<Widget>((task) {
         final isDone = completedIds.contains(task.id);
         return Padding(
           padding: const EdgeInsets.only(bottom: 8),
           child: InkWell(
-            onTap: () => ref.read(completedTaskIdsProvider.notifier).toggle(task.id, weekNumber),
+            onTap: () => ref
+                .read(completedTaskIdsProvider.notifier)
+                .toggle(task.id, weekNumber),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -507,7 +584,9 @@ class _TaskList extends ConsumerWidget {
                     height: 20,
                     child: Checkbox(
                       value: isDone,
-                      onChanged: (_) => ref.read(completedTaskIdsProvider.notifier).toggle(task.id, weekNumber),
+                      onChanged: (_) => ref
+                          .read(completedTaskIdsProvider.notifier)
+                          .toggle(task.id, weekNumber),
                       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       visualDensity: VisualDensity.compact,
                       activeColor: colors.border,
@@ -521,7 +600,13 @@ class _TaskList extends ConsumerWidget {
                     style: TextStyle(
                       fontSize: 13,
                       height: 1.5,
-                      color: isDone ? Colors.grey.shade400 : Colors.grey.shade800,
+                      color: isDone
+                          ? (isDark
+                                ? Colors.grey.shade600
+                                : Colors.grey.shade400)
+                          : (isDark
+                                ? Colors.grey.shade300
+                                : Colors.grey.shade800),
                       decoration: isDone ? TextDecoration.lineThrough : null,
                     ),
                   ),
@@ -540,15 +625,27 @@ class _MetaRow extends StatelessWidget {
   final String value;
   final PhaseColors colors;
 
-  const _MetaRow({required this.label, required this.value, required this.colors});
+  const _MetaRow({
+    required this.label,
+    required this.value,
+    required this.colors,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return RichText(
       text: TextSpan(
-        style: const TextStyle(fontSize: 13, height: 1.5, color: Colors.black87),
+        style: TextStyle(
+          fontSize: 13,
+          height: 1.5,
+          color: isDark ? Colors.grey.shade300 : Colors.black87,
+        ),
         children: [
-          TextSpan(text: '$label: ', style: TextStyle(fontWeight: FontWeight.w700, color: colors.text)),
+          TextSpan(
+            text: '$label: ',
+            style: TextStyle(fontWeight: FontWeight.w700, color: colors.text),
+          ),
           TextSpan(text: value),
         ],
       ),
@@ -600,7 +697,9 @@ class _QuickNoteFieldState extends ConsumerState<_QuickNoteField> {
         isDense: true,
       ),
       onChanged: (value) {
-        ref.read(weekPlansProvider.notifier).updateQuickNote(widget.plan.weekNumber, value);
+        ref
+            .read(weekPlansProvider.notifier)
+            .updateQuickNote(widget.plan.weekNumber, value);
       },
     );
   }
@@ -612,9 +711,13 @@ class _AboutPlanScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       appBar: AppBar(
-        title: Text('About This Plan', style: GoogleFonts.jetBrainsMono(fontWeight: FontWeight.w700)),
+        title: Text(
+          'About This Plan',
+          style: GoogleFonts.jetBrainsMono(fontWeight: FontWeight.w700),
+        ),
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
@@ -623,8 +726,9 @@ class _AboutPlanScreen extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: const Color(0xFF111827),
+              color: isDark ? const Color(0xFF1A1A2E) : const Color(0xFF111827),
               borderRadius: BorderRadius.circular(12),
+              border: isDark ? Border.all(color: Colors.grey.shade800) : null,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -657,7 +761,11 @@ class _AboutPlanScreen extends StatelessWidget {
                         Expanded(
                           child: Text(
                             _rules[i],
-                            style: TextStyle(fontSize: 13, color: Colors.grey.shade300, height: 1.5),
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.grey.shade300,
+                              height: 1.5,
+                            ),
                           ),
                         ),
                       ],
@@ -672,8 +780,12 @@ class _AboutPlanScreen extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.grey.shade50,
-              border: Border.all(color: Colors.grey.shade200),
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.05)
+                  : Colors.grey.shade50,
+              border: Border.all(
+                color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
+              ),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Column(
@@ -681,21 +793,43 @@ class _AboutPlanScreen extends StatelessWidget {
               children: [
                 Text(
                   'BUFFER WEEKS',
-                  style: GoogleFonts.jetBrainsMono(fontSize: 14, fontWeight: FontWeight.w700),
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
                 const SizedBox(height: 12),
-                ..._bufferNotes.map((note) => Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('— ', style: TextStyle(color: Colors.grey.shade400, fontWeight: FontWeight.w700)),
-                          Expanded(
-                            child: Text(note, style: TextStyle(fontSize: 13, color: Colors.grey.shade600, height: 1.5)),
+                ..._bufferNotes.map(
+                  (note) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '— ',
+                          style: TextStyle(
+                            color: isDark
+                                ? Colors.grey.shade500
+                                : Colors.grey.shade400,
+                            fontWeight: FontWeight.w700,
                           ),
-                        ],
-                      ),
-                    )),
+                        ),
+                        Expanded(
+                          child: Text(
+                            note,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: isDark
+                                  ? Colors.grey.shade400
+                                  : Colors.grey.shade600,
+                              height: 1.5,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -704,8 +838,12 @@ class _AboutPlanScreen extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.grey.shade50,
-              border: Border.all(color: Colors.grey.shade200),
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.05)
+                  : Colors.grey.shade50,
+              border: Border.all(
+                color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
+              ),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Column(
@@ -713,7 +851,10 @@ class _AboutPlanScreen extends StatelessWidget {
               children: [
                 Text(
                   'COST BREAKDOWN',
-                  style: GoogleFonts.jetBrainsMono(fontSize: 14, fontWeight: FontWeight.w700),
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 ..._costs.asMap().entries.map((entry) {
@@ -721,7 +862,15 @@ class _AboutPlanScreen extends StatelessWidget {
                   return Container(
                     padding: EdgeInsets.only(top: isTotal ? 8 : 0),
                     decoration: BoxDecoration(
-                      border: isTotal ? Border(top: BorderSide(color: Colors.grey.shade300)) : null,
+                      border: isTotal
+                          ? Border(
+                              top: BorderSide(
+                                color: isDark
+                                    ? Colors.grey.shade700
+                                    : Colors.grey.shade300,
+                              ),
+                            )
+                          : null,
                     ),
                     child: Padding(
                       padding: const EdgeInsets.only(bottom: 6),
@@ -732,14 +881,18 @@ class _AboutPlanScreen extends StatelessWidget {
                             entry.value['label']!,
                             style: TextStyle(
                               fontSize: 13,
-                              fontWeight: isTotal ? FontWeight.w700 : FontWeight.w400,
+                              fontWeight: isTotal
+                                  ? FontWeight.w700
+                                  : FontWeight.w400,
                             ),
                           ),
                           Text(
                             entry.value['value']!,
                             style: GoogleFonts.jetBrainsMono(
                               fontSize: 12,
-                              fontWeight: isTotal ? FontWeight.w700 : FontWeight.w400,
+                              fontWeight: isTotal
+                                  ? FontWeight.w700
+                                  : FontWeight.w400,
                             ),
                           ),
                         ],

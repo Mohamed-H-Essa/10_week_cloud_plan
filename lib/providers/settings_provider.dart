@@ -3,7 +3,9 @@ import '../data/models/app_settings.dart';
 import '../services/notification_service.dart';
 import 'repositories_provider.dart';
 
-final settingsProvider = StateNotifierProvider<SettingsNotifier, AppSettings>((ref) {
+final settingsProvider = StateNotifierProvider<SettingsNotifier, AppSettings>((
+  ref,
+) {
   return SettingsNotifier(ref);
 });
 
@@ -16,7 +18,24 @@ class SettingsNotifier extends StateNotifier<AppSettings> {
 
   Future<void> update(void Function(AppSettings s) updater) async {
     await _ref.read(settingsRepoProvider).update(updater);
-    state = _ref.read(settingsRepoProvider).settings;
+    final s = _ref.read(settingsRepoProvider).settings;
+    // Create a new instance so StateNotifier detects the change
+    // (Hive returns the same object reference, which skips notification)
+    state = AppSettings(
+      weeknightNotificationsEnabled: s.weeknightNotificationsEnabled,
+      weeknightNotificationHour: s.weeknightNotificationHour,
+      weeknightNotificationMinute: s.weeknightNotificationMinute,
+      weekendNotificationsEnabled: s.weekendNotificationsEnabled,
+      weekendNotificationHour: s.weekendNotificationHour,
+      weekendNotificationMinute: s.weekendNotificationMinute,
+      calendarId: s.calendarId,
+      pomodoroMinutes: s.pomodoroMinutes,
+      shortBreakMinutes: s.shortBreakMinutes,
+      longBreakMinutes: s.longBreakMinutes,
+      planStartDate: s.planStartDate,
+      darkModeOverride: s.darkModeOverride,
+      midSessionNotificationsEnabled: s.midSessionNotificationsEnabled,
+    );
   }
 
   Future<void> setPlanStartDate(DateTime date) async {

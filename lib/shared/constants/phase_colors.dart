@@ -5,7 +5,11 @@ class PhaseColors {
   final Color border;
   final Color text;
 
-  const PhaseColors({required this.bg, required this.border, required this.text});
+  const PhaseColors({
+    required this.bg,
+    required this.border,
+    required this.text,
+  });
 }
 
 const phaseColorMap = <String, PhaseColors>{
@@ -40,3 +44,44 @@ const phaseColorMap = <String, PhaseColors>{
     text: Color(0xFFA21CAF),
   ),
 };
+
+const _phaseColorMapDark = <String, PhaseColors>{
+  'CONTAINERS': PhaseColors(
+    bg: Color(0xFF0C2D48),
+    border: Color(0xFF38BDF8),
+    text: Color(0xFF7DD3FC),
+  ),
+  'INFRASTRUCTURE': PhaseColors(
+    bg: Color(0xFF1E1B4B),
+    border: Color(0xFF818CF8),
+    text: Color(0xFFA5B4FC),
+  ),
+  'AUTOMATION': PhaseColors(
+    bg: Color(0xFF422006),
+    border: Color(0xFFFBBF24),
+    text: Color(0xFFFDE68A),
+  ),
+  'CERT': PhaseColors(
+    bg: Color(0xFF450A0A),
+    border: Color(0xFFF87171),
+    text: Color(0xFFFCA5A5),
+  ),
+  'CAPSTONE': PhaseColors(
+    bg: Color(0xFF052E16),
+    border: Color(0xFF34D399),
+    text: Color(0xFF6EE7B7),
+  ),
+  'LAUNCH': PhaseColors(
+    bg: Color(0xFF3B0764),
+    border: Color(0xFFE879F9),
+    text: Color(0xFFF0ABFC),
+  ),
+};
+
+/// Returns the appropriate PhaseColors for the given phase and brightness.
+PhaseColors? getPhaseColors(String phase, Brightness brightness) {
+  if (brightness == Brightness.dark) {
+    return _phaseColorMapDark[phase];
+  }
+  return phaseColorMap[phase];
+}

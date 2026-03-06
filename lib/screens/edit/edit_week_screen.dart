@@ -41,11 +41,9 @@ class _EditWeekScreenState extends ConsumerState<EditWeekScreen> {
     for (int i = 0; i < _saturdayTasks.length; i++) {
       _saturdayTasks[i].sortOrder = i;
     }
-    await ref.read(weekPlansProvider.notifier).updateTasks(
-          widget.weekNumber,
-          _fridayTasks,
-          _saturdayTasks,
-        );
+    await ref
+        .read(weekPlansProvider.notifier)
+        .updateTasks(widget.weekNumber, _fridayTasks, _saturdayTasks);
     if (mounted) Navigator.pop(context);
   }
 
@@ -57,8 +55,14 @@ class _EditWeekScreenState extends ConsumerState<EditWeekScreen> {
         title: const Text('Discard changes?'),
         content: const Text('You have unsaved changes that will be lost.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Discard')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Discard'),
+          ),
         ],
       ),
     );
@@ -106,24 +110,28 @@ class _EditWeekScreenState extends ConsumerState<EditWeekScreen> {
       builder: (context) => CupertinoActionSheet(
         title: const Text('Move to week'),
         actions: weekOptions
-            .map((w) => CupertinoActionSheetAction(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    // Remove from current
-                    setState(() {
-                      if (day == 'friday') {
-                        _fridayTasks.removeAt(index);
-                      } else {
-                        _saturdayTasks.removeAt(index);
-                      }
-                    });
-                    _markChanged();
-                    ScaffoldMessenger.of(this.context).showSnackBar(
-                      SnackBar(content: Text('Task will move to Week $w after save')),
-                    );
-                  },
-                  child: Text('Week $w'),
-                ))
+            .map(
+              (w) => CupertinoActionSheetAction(
+                onPressed: () {
+                  Navigator.pop(context);
+                  // Remove from current
+                  setState(() {
+                    if (day == 'friday') {
+                      _fridayTasks.removeAt(index);
+                    } else {
+                      _saturdayTasks.removeAt(index);
+                    }
+                  });
+                  _markChanged();
+                  ScaffoldMessenger.of(this.context).showSnackBar(
+                    SnackBar(
+                      content: Text('Task will move to Week $w after save'),
+                    ),
+                  );
+                },
+                child: Text('Week $w'),
+              ),
+            )
             .toList(),
         cancelButton: CupertinoActionSheetAction(
           isDestructiveAction: true,
@@ -138,7 +146,7 @@ class _EditWeekScreenState extends ConsumerState<EditWeekScreen> {
   Widget build(BuildContext context) {
     final plans = ref.watch(weekPlansProvider);
     final plan = plans.firstWhere((p) => p.weekNumber == widget.weekNumber);
-    final colors = phaseColorMap[plan.phase]!;
+    final colors = getPhaseColors(plan.phase, Theme.of(context).brightness)!;
 
     return PopScope(
       canPop: !_hasChanges,
@@ -150,13 +158,24 @@ class _EditWeekScreenState extends ConsumerState<EditWeekScreen> {
       },
       child: Scaffold(
         appBar: AppBar(
-          title: Text('Edit Week ${widget.weekNumber}',
-              style: GoogleFonts.jetBrainsMono(fontWeight: FontWeight.w700, fontSize: 16)),
+          title: Text(
+            'Edit Week ${widget.weekNumber}',
+            style: GoogleFonts.jetBrainsMono(
+              fontWeight: FontWeight.w700,
+              fontSize: 16,
+            ),
+          ),
           actions: [
             if (_hasChanges)
               TextButton(
                 onPressed: _save,
-                child: Text('Save', style: TextStyle(color: colors.border, fontWeight: FontWeight.w700)),
+                child: Text(
+                  'Save',
+                  style: TextStyle(
+                    color: colors.border,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ),
           ],
         ),
@@ -225,7 +244,11 @@ class _EditWeekScreenState extends ConsumerState<EditWeekScreen> {
                 },
               ),
               trailing: IconButton(
-                icon: Icon(Icons.more_vert, size: 20, color: Colors.grey.shade500),
+                icon: Icon(
+                  Icons.more_vert,
+                  size: 20,
+                  color: Colors.grey.shade500,
+                ),
                 onPressed: () => _moveTaskToWeek(task, day, index),
               ),
             ),
@@ -241,7 +264,11 @@ class _SectionHeader extends StatelessWidget {
   final Color color;
   final VoidCallback onAdd;
 
-  const _SectionHeader({required this.title, required this.color, required this.onAdd});
+  const _SectionHeader({
+    required this.title,
+    required this.color,
+    required this.onAdd,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -249,9 +276,22 @@ class _SectionHeader extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
         children: [
-          Container(width: 4, height: 20, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(2))),
+          Container(
+            width: 4,
+            height: 20,
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
           const SizedBox(width: 8),
-          Text(title, style: GoogleFonts.jetBrainsMono(fontSize: 14, fontWeight: FontWeight.w700)),
+          Text(
+            title,
+            style: GoogleFonts.jetBrainsMono(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
           const Spacer(),
           TextButton.icon(
             onPressed: onAdd,
@@ -270,7 +310,11 @@ class _InlineEditField extends StatefulWidget {
   final String hintText;
   final ValueChanged<String> onChanged;
 
-  const _InlineEditField({required this.initialText, required this.hintText, required this.onChanged});
+  const _InlineEditField({
+    required this.initialText,
+    required this.hintText,
+    required this.onChanged,
+  });
 
   @override
   State<_InlineEditField> createState() => _InlineEditFieldState();

@@ -41,16 +41,22 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     final streak = ref.watch(streakProvider);
     final examCountdown = ref.watch(examCountdownProvider);
     final plans = ref.watch(weekPlansProvider);
-    final weekPlan = plans.isNotEmpty && currentWeek >= 1 && currentWeek <= plans.length
+    final weekPlan =
+        plans.isNotEmpty && currentWeek >= 1 && currentWeek <= plans.length
         ? plans[currentWeek - 1]
         : null;
     final weekProgress = ref.watch(weekProgressProvider(currentWeek));
-    final colors = weekPlan != null ? phaseColorMap[weekPlan.phase] : null;
+    final colors = weekPlan != null
+        ? getPhaseColors(weekPlan.phase, Theme.of(context).brightness)
+        : null;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Cloud Study', style: GoogleFonts.jetBrainsMono(fontWeight: FontWeight.w700)),
+        title: Text(
+          'Cloud Study',
+          style: GoogleFonts.jetBrainsMono(fontWeight: FontWeight.w700),
+        ),
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
@@ -87,10 +93,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
           _SlideIn(
             controller: _animController,
             delay: 0.2,
-            child: _NextSessionCard(
-              weekPlan: weekPlan,
-              isDark: isDark,
-            ),
+            child: _NextSessionCard(weekPlan: weekPlan, isDark: isDark),
           ),
           const SizedBox(height: 20),
 
@@ -111,7 +114,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                   ),
                 ),
                 const SizedBox(height: 10),
-                _WeekGrid(plans: plans, currentWeek: currentWeek, isDark: isDark),
+                _WeekGrid(
+                  plans: plans,
+                  currentWeek: currentWeek,
+                  isDark: isDark,
+                ),
               ],
             ),
           ),
@@ -128,7 +135,11 @@ class _SlideIn extends StatelessWidget {
   final double delay;
   final Widget child;
 
-  const _SlideIn({required this.controller, required this.delay, required this.child});
+  const _SlideIn({
+    required this.controller,
+    required this.delay,
+    required this.child,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -154,7 +165,11 @@ class _SlideIn extends StatelessWidget {
 class AnimatedBuilder extends AnimatedWidget {
   final Widget Function(BuildContext, Widget?) builder;
 
-  const AnimatedBuilder({super.key, required super.listenable, required this.builder});
+  const AnimatedBuilder({
+    super.key,
+    required super.listenable,
+    required this.builder,
+  });
 
   @override
   Widget build(BuildContext context) => builder(context, null);
@@ -183,8 +198,14 @@ class _ProgressHeroCard extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: isDark
-              ? [primary.withValues(alpha: 0.15), primary.withValues(alpha: 0.05)]
-              : [primary.withValues(alpha: 0.08), primary.withValues(alpha: 0.02)],
+              ? [
+                  primary.withValues(alpha: 0.15),
+                  primary.withValues(alpha: 0.05),
+                ]
+              : [
+                  primary.withValues(alpha: 0.08),
+                  primary.withValues(alpha: 0.02),
+                ],
         ),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
@@ -228,7 +249,10 @@ class _ProgressHeroCard extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   '10-Week Cloud Engineering',
-                  style: TextStyle(fontSize: 12, color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 Wrap(
@@ -262,7 +286,11 @@ class _GlassChip extends StatelessWidget {
   final String label;
   final Color color;
 
-  const _GlassChip({required this.icon, required this.label, required this.color});
+  const _GlassChip({
+    required this.icon,
+    required this.label,
+    required this.color,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -313,7 +341,7 @@ class _CurrentWeekCard extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: colors.border.withValues(alpha: 0.4)),
-        color: isDark ? colors.border.withValues(alpha: 0.08) : colors.bg,
+        color: colors.bg,
       ),
       child: Column(
         children: [
@@ -322,7 +350,9 @@ class _CurrentWeekCard extends StatelessWidget {
             height: 4,
             decoration: BoxDecoration(
               color: colors.border,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(15),
+              ),
             ),
           ),
           Padding(
@@ -333,7 +363,10 @@ class _CurrentWeekCard extends StatelessWidget {
                 Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: colors.border,
                         borderRadius: BorderRadius.circular(6),
@@ -370,7 +403,10 @@ class _CurrentWeekCard extends StatelessWidget {
                 const SizedBox(height: 10),
                 Text(
                   plan.title,
-                  style: GoogleFonts.jetBrainsMono(fontSize: 16, fontWeight: FontWeight.w700),
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -423,19 +459,29 @@ class _NextSessionCard extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.grey.shade200,
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.08)
+              : Colors.grey.shade200,
         ),
-        color: isDark ? Colors.white.withValues(alpha: 0.03) : Colors.grey.shade50,
+        color: isDark
+            ? Colors.white.withValues(alpha: 0.03)
+            : Colors.grey.shade50,
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+              color: Theme.of(
+                context,
+              ).colorScheme.primary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(icon, size: 22, color: Theme.of(context).colorScheme.primary),
+            child: Icon(
+              icon,
+              size: 22,
+              color: Theme.of(context).colorScheme.primary,
+            ),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -444,7 +490,10 @@ class _NextSessionCard extends StatelessWidget {
               children: [
                 Text(
                   label,
-                  style: GoogleFonts.jetBrainsMono(fontSize: 13, fontWeight: FontWeight.w700),
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
                 const SizedBox(height: 2),
                 Text(
@@ -467,8 +516,16 @@ class _NextSessionCard extends StatelessWidget {
     // Build days: Friday (build) & Saturday (deploy/test)
     // Study nights: Sun-Thu evenings (SAA-C03)
     return switch (now.weekday) {
-      DateTime.friday => (Icons.build, 'Today (Friday)', weekPlan.tagline as String),
-      DateTime.saturday => (Icons.rocket_launch, 'Today (Saturday)', weekPlan.tagline as String),
+      DateTime.friday => (
+        Icons.build,
+        'Today (Friday)',
+        weekPlan.tagline as String,
+      ),
+      DateTime.saturday => (
+        Icons.rocket_launch,
+        'Today (Saturday)',
+        weekPlan.tagline as String,
+      ),
       _ => (Icons.menu_book, 'Study Night', 'SAA-C03 session tonight'),
     };
   }
@@ -479,7 +536,11 @@ class _WeekGrid extends ConsumerWidget {
   final int currentWeek;
   final bool isDark;
 
-  const _WeekGrid({required this.plans, required this.currentWeek, required this.isDark});
+  const _WeekGrid({
+    required this.plans,
+    required this.currentWeek,
+    required this.isDark,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -496,7 +557,7 @@ class _WeekGrid extends ConsumerWidget {
       itemBuilder: (context, i) {
         final plan = plans[i];
         final progress = ref.watch(weekProgressProvider(plan.weekNumber));
-        final pc = phaseColorMap[plan.phase];
+        final pc = getPhaseColors(plan.phase, Theme.of(context).brightness);
         final isCurrent = plan.weekNumber == currentWeek;
 
         return TweenAnimationBuilder<double>(
@@ -506,21 +567,20 @@ class _WeekGrid extends ConsumerWidget {
           builder: (context, value, child) {
             return Opacity(
               opacity: value,
-              child: Transform.scale(
-                scale: 0.8 + (0.2 * value),
-                child: child,
-              ),
+              child: Transform.scale(scale: 0.8 + (0.2 * value), child: child),
             );
           },
           child: Container(
             decoration: BoxDecoration(
-              color: isDark
-                  ? (pc?.border.withValues(alpha: 0.08) ?? Colors.grey.shade900)
-                  : (pc?.bg ?? Colors.grey.shade50),
+              color:
+                  pc?.bg ??
+                  (isDark ? Colors.grey.shade900 : Colors.grey.shade50),
               border: Border.all(
                 color: isCurrent
                     ? (pc?.border ?? Colors.blue)
-                    : (isDark ? Colors.white.withValues(alpha: 0.06) : Colors.grey.shade200),
+                    : (isDark
+                          ? Colors.white.withValues(alpha: 0.06)
+                          : Colors.grey.shade200),
                 width: isCurrent ? 2 : 1,
               ),
               borderRadius: BorderRadius.circular(12),

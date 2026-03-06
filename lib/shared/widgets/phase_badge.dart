@@ -10,7 +10,7 @@ class PhaseBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = phaseColorMap[phase];
+    final colors = getPhaseColors(phase, Theme.of(context).brightness);
     if (colors == null) return const SizedBox.shrink();
 
     return Container(
