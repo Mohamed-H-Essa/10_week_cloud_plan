@@ -464,14 +464,11 @@ class _NextSessionCard extends StatelessWidget {
 
   (IconData, String, String) _getNextSession() {
     final now = DateTime.now();
-    // Week starts Sunday. Off days: Friday & Saturday.
-    // Build days: Sunday (build), Monday (deploy/test)
-    // Study nights: Sun-Thu evenings
+    // Build days: Friday (build) & Saturday (deploy/test)
+    // Study nights: Sun-Thu evenings (SAA-C03)
     return switch (now.weekday) {
-      DateTime.sunday => (Icons.build, 'Today (Sunday)', weekPlan.tagline as String),
-      DateTime.monday => (Icons.rocket_launch, 'Today (Monday)', weekPlan.tagline as String),
-      DateTime.friday => (Icons.weekend, 'Off Day', 'Rest up — build day is Sunday'),
-      DateTime.saturday => (Icons.weekend, 'Off Day', 'Recharge — tomorrow we build'),
+      DateTime.friday => (Icons.build, 'Today (Friday)', weekPlan.tagline as String),
+      DateTime.saturday => (Icons.rocket_launch, 'Today (Saturday)', weekPlan.tagline as String),
       _ => (Icons.menu_book, 'Study Night', 'SAA-C03 session tonight'),
     };
   }

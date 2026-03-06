@@ -88,36 +88,27 @@ class WidgetService {
     final weekday = now.weekday;
 
     // Day-specific messages
-    if (weekday == DateTime.friday || weekday == DateTime.saturday) {
-      // Off days
-      final offMessages = [
-        "Rest today. War resumes Sunday.",
-        "Recharge. The cluster doesn't deploy itself.",
-        "Even AWS takes maintenance windows.",
-        "Off day. But your competition might not be resting.",
-      ];
-      return offMessages[now.day % offMessages.length];
-    }
-
-    if (weekday == DateTime.sunday) {
+    if (weekday == DateTime.friday) {
       if (hour < 10) {
-        return "It's Sunday. Time to build. No excuses.";
+        return "It's Friday. Time to build. No excuses.";
       } else if (hour < 14) {
         return "Build session is NOW. Open the terminal.";
       } else {
-        return "Sunday's not over. Ship something before midnight.";
+        return "Friday's not over. Ship something before midnight.";
       }
     }
 
-    if (weekday == DateTime.monday) {
+    if (weekday == DateTime.saturday) {
       if (hour < 10) {
-        return "Monday deploy day. Break what you built yesterday.";
-      } else {
+        return "Saturday deploy day. Break what you built yesterday.";
+      } else if (hour < 14) {
         return "Deploy, test, break it. That's the loop.";
+      } else {
+        return "It's Saturday and you're still not done. Ship it.";
       }
     }
 
-    // Weeknight study (Tue-Thu)
+    // Weeknight study (Sun-Thu)
     if (hour < 12) {
       final morningMessages = [
         "Tonight: SAA study. No Netflix. You chose this.",

@@ -46,7 +46,7 @@ class SettingsScreen extends ConsumerWidget {
           SwitchListTile(
             secondary: const Icon(Icons.nights_stay),
             title: const Text('Weeknight Reminders'),
-            subtitle: Text('Sun-Thu at ${_formatTime(settings.weeknightNotificationHour, settings.weeknightNotificationMinute)}'),
+            subtitle: Text('Sun–Thu at ${_formatTime(settings.weeknightNotificationHour, settings.weeknightNotificationMinute)}'),
             value: settings.weeknightNotificationsEnabled,
             onChanged: (v) => notifier.setWeeknightNotifications(v),
           ),
@@ -74,7 +74,7 @@ class SettingsScreen extends ConsumerWidget {
           SwitchListTile(
             secondary: const Icon(Icons.wb_sunny),
             title: const Text('Weekend Reminders'),
-            subtitle: Text('Sun & Mon at ${_formatTime(settings.weekendNotificationHour, settings.weekendNotificationMinute)}'),
+            subtitle: Text('Fri & Sat at ${_formatTime(settings.weekendNotificationHour, settings.weekendNotificationMinute)}'),
             value: settings.weekendNotificationsEnabled,
             onChanged: (v) => notifier.setWeekendNotifications(v),
           ),

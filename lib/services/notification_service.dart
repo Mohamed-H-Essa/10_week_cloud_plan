@@ -39,7 +39,7 @@ class NotificationService {
   }) async {
     await cancelGroup('weeknight');
 
-    // Study nights: Sun-Thu (Fri/Sat are off days)
+    // Study nights: Sun-Thu evenings (workday evenings for SAA-C03)
     final studyNights = [DateTime.sunday, DateTime.monday, DateTime.tuesday, DateTime.wednesday, DateTime.thursday];
     for (final weekday in studyNights) {
       await _plugin.zonedSchedule(
@@ -67,12 +67,12 @@ class NotificationService {
   }) async {
     await cancelGroup('weekend');
 
-    // Build days: Sunday (build) & Monday (deploy/test)
-    for (final weekday in [DateTime.sunday, DateTime.monday]) {
+    // Build days: Friday (build) & Saturday (deploy/test)
+    for (final weekday in [DateTime.friday, DateTime.saturday]) {
       await _plugin.zonedSchedule(
         200 + weekday,
         'Build Day',
-        weekday == DateTime.sunday ? 'Sunday build session!' : 'Monday deploy session!',
+        weekday == DateTime.friday ? 'Friday build session!' : 'Saturday deploy session!',
         _nextInstanceOfWeekdayTime(weekday, hour, minute),
         const NotificationDetails(
           iOS: DarwinNotificationDetails(
