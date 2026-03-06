@@ -12,6 +12,7 @@ class SettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(settingsProvider);
     final notifier = ref.read(settingsProvider.notifier);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       appBar: AppBar(
@@ -19,16 +20,13 @@ class SettingsScreen extends ConsumerWidget {
       ),
       body: ListView(
         children: [
-          // Plan Start Date
           _SectionHeader(title: 'PLAN'),
-          ListTile(
+          _AnimatedSettingsTile(
             leading: const Icon(Icons.calendar_today),
-            title: const Text('Plan Start Date'),
-            subtitle: Text(
-              settings.planStartDate != null
-                  ? DateFormat.yMMMd().format(settings.planStartDate!)
-                  : 'Not set',
-            ),
+            title: 'Plan Start Date',
+            subtitle: settings.planStartDate != null
+                ? DateFormat.yMMMd().format(settings.planStartDate!)
+                : 'Tap to set your start date',
             trailing: const Icon(Icons.chevron_right),
             onTap: () async {
               final date = await showDatePicker(
@@ -43,16 +41,14 @@ class SettingsScreen extends ConsumerWidget {
             },
           ),
 
-          const Divider(),
+          const Divider(height: 1),
           _SectionHeader(title: 'NOTIFICATIONS'),
           SwitchListTile(
             secondary: const Icon(Icons.nights_stay),
             title: const Text('Weeknight Reminders'),
-            subtitle: Text('Mon-Fri at ${_formatTime(settings.weeknightNotificationHour, settings.weeknightNotificationMinute)}'),
+            subtitle: Text('Sun-Thu at ${_formatTime(settings.weeknightNotificationHour, settings.weeknightNotificationMinute)}'),
             value: settings.weeknightNotificationsEnabled,
-            onChanged: (v) async {
-              await notifier.update((s) => s.weeknightNotificationsEnabled = v);
-            },
+            onChanged: (v) => notifier.setWeeknightNotifications(v),
           ),
           if (settings.weeknightNotificationsEnabled)
             ListTile(
@@ -71,21 +67,16 @@ class SettingsScreen extends ConsumerWidget {
                   ),
                 );
                 if (time != null) {
-                  await notifier.update((s) {
-                    s.weeknightNotificationHour = time.hour;
-                    s.weeknightNotificationMinute = time.minute;
-                  });
+                  await notifier.setWeeknightTime(time.hour, time.minute);
                 }
               },
             ),
           SwitchListTile(
             secondary: const Icon(Icons.wb_sunny),
             title: const Text('Weekend Reminders'),
-            subtitle: Text('Fri & Sat at ${_formatTime(settings.weekendNotificationHour, settings.weekendNotificationMinute)}'),
+            subtitle: Text('Sun & Mon at ${_formatTime(settings.weekendNotificationHour, settings.weekendNotificationMinute)}'),
             value: settings.weekendNotificationsEnabled,
-            onChanged: (v) async {
-              await notifier.update((s) => s.weekendNotificationsEnabled = v);
-            },
+            onChanged: (v) => notifier.setWeekendNotifications(v),
           ),
           if (settings.weekendNotificationsEnabled)
             ListTile(
@@ -104,45 +95,19 @@ class SettingsScreen extends ConsumerWidget {
                   ),
                 );
                 if (time != null) {
-                  await notifier.update((s) {
-                    s.weekendNotificationHour = time.hour;
-                    s.weekendNotificationMinute = time.minute;
-                  });
+                  await notifier.setWeekendTime(time.hour, time.minute);
                 }
               },
             ),
           SwitchListTile(
-            secondary: const Icon(Icons.timer),
+            secondary: const Icon(Icons.notification_important_outlined),
             title: const Text('Mid-Session Check'),
             subtitle: const Text('Halfway through study session'),
             value: settings.midSessionNotificationsEnabled,
-            onChanged: (v) async {
-              await notifier.update((s) => s.midSessionNotificationsEnabled = v);
-            },
+            onChanged: (v) => notifier.setMidSessionNotifications(v),
           ),
 
-          const Divider(),
-          _SectionHeader(title: 'TIMER'),
-          ListTile(
-            leading: const Icon(Icons.work_history),
-            title: const Text('Focus Duration'),
-            trailing: Text('${settings.pomodoroMinutes} min', style: GoogleFonts.jetBrainsMono(fontSize: 14)),
-            onTap: () => _showDurationPicker(context, 'Focus Duration', settings.pomodoroMinutes, (v) => notifier.setPomodoroMinutes(v)),
-          ),
-          ListTile(
-            leading: const Icon(Icons.coffee),
-            title: const Text('Short Break'),
-            trailing: Text('${settings.shortBreakMinutes} min', style: GoogleFonts.jetBrainsMono(fontSize: 14)),
-            onTap: () => _showDurationPicker(context, 'Short Break', settings.shortBreakMinutes, (v) => notifier.setShortBreakMinutes(v)),
-          ),
-          ListTile(
-            leading: const Icon(Icons.self_improvement),
-            title: const Text('Long Break'),
-            trailing: Text('${settings.longBreakMinutes} min', style: GoogleFonts.jetBrainsMono(fontSize: 14)),
-            onTap: () => _showDurationPicker(context, 'Long Break', settings.longBreakMinutes, (v) => notifier.setLongBreakMinutes(v)),
-          ),
-
-          const Divider(),
+          const Divider(height: 1),
           _SectionHeader(title: 'APPEARANCE'),
           ListTile(
             leading: const Icon(Icons.dark_mode),
@@ -162,31 +127,31 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ),
 
-          const Divider(),
+          const Divider(height: 1),
           _SectionHeader(title: 'DATA'),
-          ListTile(
+          _AnimatedSettingsTile(
             leading: const Icon(Icons.ios_share),
-            title: const Text('Export Progress'),
-            subtitle: const Text('Share as markdown'),
+            title: 'Export Progress',
+            subtitle: 'Share as markdown',
             trailing: const Icon(Icons.chevron_right),
             onTap: () => ExportService.exportProgress(ref),
           ),
 
-          const Divider(),
+          const Divider(height: 1),
           _SectionHeader(title: 'GOOGLE CALENDAR'),
-          ListTile(
-            leading: const Icon(Icons.event),
-            title: const Text('Connect Google Calendar'),
-            subtitle: const Text('Coming soon'),
+          _AnimatedSettingsTile(
+            leading: Icon(Icons.event, color: isDark ? Colors.grey.shade600 : Colors.grey.shade400),
+            title: 'Connect Google Calendar',
+            subtitle: 'Coming soon',
             trailing: const Icon(Icons.chevron_right),
-            enabled: false,
+            onTap: null,
           ),
 
           const SizedBox(height: 40),
           Center(
             child: Text(
               'Cloud Study v1.0.0',
-              style: GoogleFonts.jetBrainsMono(fontSize: 11, color: Colors.grey.shade400),
+              style: GoogleFonts.jetBrainsMono(fontSize: 11, color: Colors.grey.shade500),
             ),
           ),
           const SizedBox(height: 20),
@@ -200,45 +165,48 @@ class SettingsScreen extends ConsumerWidget {
     final amPm = hour >= 12 ? 'PM' : 'AM';
     return '$h:${minute.toString().padLeft(2, '0')} $amPm';
   }
+}
 
-  void _showDurationPicker(BuildContext context, String title, int currentValue, ValueChanged<int> onChanged) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        int value = currentValue;
-        return StatefulBuilder(
-          builder: (context, setState) => AlertDialog(
-            title: Text(title),
-            content: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                IconButton(
-                  onPressed: value > 1 ? () => setState(() => value--) : null,
-                  icon: const Icon(Icons.remove_circle_outline),
-                ),
-                Text(
-                  '$value min',
-                  style: GoogleFonts.jetBrainsMono(fontSize: 24, fontWeight: FontWeight.w700),
-                ),
-                IconButton(
-                  onPressed: value < 120 ? () => setState(() => value++) : null,
-                  icon: const Icon(Icons.add_circle_outline),
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-              FilledButton(
-                onPressed: () {
-                  onChanged(value);
-                  Navigator.pop(context);
-                },
-                child: const Text('Set'),
-              ),
-            ],
-          ),
-        );
-      },
+class _AnimatedSettingsTile extends StatefulWidget {
+  final Widget leading;
+  final String title;
+  final String subtitle;
+  final Widget trailing;
+  final VoidCallback? onTap;
+
+  const _AnimatedSettingsTile({
+    required this.leading,
+    required this.title,
+    required this.subtitle,
+    required this.trailing,
+    required this.onTap,
+  });
+
+  @override
+  State<_AnimatedSettingsTile> createState() => _AnimatedSettingsTileState();
+}
+
+class _AnimatedSettingsTileState extends State<_AnimatedSettingsTile> {
+  bool _pressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: widget.onTap != null ? (_) => setState(() => _pressed = true) : null,
+      onTapUp: widget.onTap != null ? (_) => setState(() => _pressed = false) : null,
+      onTapCancel: () => setState(() => _pressed = false),
+      onTap: widget.onTap,
+      child: AnimatedScale(
+        scale: _pressed ? 0.97 : 1.0,
+        duration: const Duration(milliseconds: 100),
+        child: ListTile(
+          leading: widget.leading,
+          title: Text(widget.title),
+          subtitle: Text(widget.subtitle),
+          trailing: widget.trailing,
+          enabled: widget.onTap != null,
+        ),
+      ),
     );
   }
 }
@@ -250,14 +218,14 @@ class _SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+      padding: const EdgeInsets.fromLTRB(16, 20, 16, 4),
       child: Text(
         title,
         style: GoogleFonts.jetBrainsMono(
           fontSize: 11,
           fontWeight: FontWeight.w700,
-          color: Colors.grey.shade500,
-          letterSpacing: 1,
+          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.6),
+          letterSpacing: 1.5,
         ),
       ),
     );

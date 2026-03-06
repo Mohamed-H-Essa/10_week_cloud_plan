@@ -12,6 +12,7 @@ import 'data/repositories/settings_repository.dart';
 import 'data/repositories/reflection_repository.dart';
 import 'providers/repositories_provider.dart';
 import 'services/notification_service.dart';
+import 'services/widget_service.dart';
 import 'app/app.dart';
 
 Future<void> main() async {
@@ -43,8 +44,34 @@ Future<void> main() async {
     await studyPlanRepo.seed();
   }
 
-  // Initialize notifications
+  // Initialize notifications & restore schedules
   await NotificationService.init();
+  final settingsForNotif = settingsRepo.settings;
+  if (settingsForNotif.weeknightNotificationsEnabled) {
+    await NotificationService.scheduleWeeknight(
+      hour: settingsForNotif.weeknightNotificationHour,
+      minute: settingsForNotif.weeknightNotificationMinute,
+    );
+  }
+  if (settingsForNotif.weekendNotificationsEnabled) {
+    await NotificationService.scheduleWeekend(
+      hour: settingsForNotif.weekendNotificationHour,
+      minute: settingsForNotif.weekendNotificationMinute,
+    );
+  }
+
+  // Update iOS widgets with current data
+  final startDate = settingsRepo.settings.planStartDate;
+  int currentWeek = 1;
+  if (startDate != null) {
+    currentWeek = ((DateTime.now().difference(startDate).inDays / 7).floor() + 1).clamp(1, 10);
+  }
+  WidgetService.updateWidgets(
+    plans: studyPlanRepo.getAll(),
+    progressRepo: progressRepo,
+    currentWeek: currentWeek,
+    planStartDate: startDate,
+  );
 
   runApp(
     ProviderScope(

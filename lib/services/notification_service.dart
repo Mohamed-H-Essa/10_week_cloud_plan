@@ -37,13 +37,15 @@ class NotificationService {
     required int hour,
     required int minute,
   }) async {
-    await _cancelGroup('weeknight');
+    await cancelGroup('weeknight');
 
-    for (int weekday = DateTime.monday; weekday <= DateTime.friday; weekday++) {
+    // Study nights: Sun-Thu (Fri/Sat are off days)
+    final studyNights = [DateTime.sunday, DateTime.monday, DateTime.tuesday, DateTime.wednesday, DateTime.thursday];
+    for (final weekday in studyNights) {
       await _plugin.zonedSchedule(
         100 + weekday,
         'Study Time',
-        'Time for your SAA-C03 weeknight study session',
+        'Time for your study session',
         _nextInstanceOfWeekdayTime(weekday, hour, minute),
         const NotificationDetails(
           iOS: DarwinNotificationDetails(
@@ -63,13 +65,14 @@ class NotificationService {
     required int hour,
     required int minute,
   }) async {
-    await _cancelGroup('weekend');
+    await cancelGroup('weekend');
 
-    for (int weekday in [DateTime.friday, DateTime.saturday]) {
+    // Build days: Sunday (build) & Monday (deploy/test)
+    for (final weekday in [DateTime.sunday, DateTime.monday]) {
       await _plugin.zonedSchedule(
         200 + weekday,
         'Build Day',
-        weekday == DateTime.friday ? 'Friday build session!' : 'Saturday deploy session!',
+        weekday == DateTime.sunday ? 'Sunday build session!' : 'Monday deploy session!',
         _nextInstanceOfWeekdayTime(weekday, hour, minute),
         const NotificationDetails(
           iOS: DarwinNotificationDetails(
@@ -103,7 +106,7 @@ class NotificationService {
     await _plugin.cancelAll();
   }
 
-  static Future<void> _cancelGroup(String group) async {
+  static Future<void> cancelGroup(String group) async {
     final int start = group == 'weeknight' ? 100 : 200;
     for (int i = start; i < start + 8; i++) {
       await _plugin.cancel(i);

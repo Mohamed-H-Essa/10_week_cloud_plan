@@ -13,7 +13,7 @@ class AppTheme {
       appBarTheme: base.appBarTheme.copyWith(
         centerTitle: true,
         elevation: 0,
-        scrolledUnderElevation: 1,
+        scrolledUnderElevation: 0,
       ),
       cardTheme: base.cardTheme.copyWith(
         elevation: 0,
@@ -36,7 +36,7 @@ class AppTheme {
       appBarTheme: base.appBarTheme.copyWith(
         centerTitle: true,
         elevation: 0,
-        scrolledUnderElevation: 1,
+        scrolledUnderElevation: 0,
       ),
       cardTheme: base.cardTheme.copyWith(
         elevation: 0,

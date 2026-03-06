@@ -4,8 +4,8 @@ import 'theme.dart';
 import '../providers/settings_provider.dart';
 import '../screens/dashboard/dashboard_screen.dart';
 import '../screens/plan/plan_screen.dart';
-import '../screens/timer/timer_screen.dart';
 import '../screens/settings/settings_screen.dart';
+import '../shared/widgets/animated_nav_bar.dart';
 
 class CloudStudyApp extends ConsumerWidget {
   const CloudStudyApp({super.key});
@@ -37,32 +37,52 @@ class _AppShell extends StatefulWidget {
   State<_AppShell> createState() => _AppShellState();
 }
 
-class _AppShellState extends State<_AppShell> {
+class _AppShellState extends State<_AppShell> with TickerProviderStateMixin {
   int _currentIndex = 0;
+  late final PageController _pageController;
+  late final AnimationController _fadeController;
 
-  static const _screens = [
-    DashboardScreen(),
-    PlanScreen(),
-    TimerScreen(),
-    SettingsScreen(),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController();
+    _fadeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+      value: 1.0,
+    );
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    _fadeController.dispose();
+    super.dispose();
+  }
+
+  void _onTabTapped(int index) {
+    if (index == _currentIndex) return;
+    setState(() => _currentIndex = index);
+    _pageController.animateToPage(
+      index,
+      duration: const Duration(milliseconds: 350),
+      curve: Curves.easeOutCubic,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _screens,
+      extendBody: false,
+      body: PageView(
+        controller: _pageController,
+        physics: const NeverScrollableScrollPhysics(),
+        children: const [DashboardScreen(), PlanScreen(), SettingsScreen()],
+        onPageChanged: (i) => setState(() => _currentIndex = i),
       ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
-        onDestinationSelected: (i) => setState(() => _currentIndex = i),
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.dashboard_outlined), selectedIcon: Icon(Icons.dashboard), label: 'Home'),
-          NavigationDestination(icon: Icon(Icons.menu_book_outlined), selectedIcon: Icon(Icons.menu_book), label: 'Plan'),
-          NavigationDestination(icon: Icon(Icons.timer_outlined), selectedIcon: Icon(Icons.timer), label: 'Timer'),
-          NavigationDestination(icon: Icon(Icons.settings_outlined), selectedIcon: Icon(Icons.settings), label: 'Settings'),
-        ],
+      bottomNavigationBar: AnimatedNavBar(
+        currentIndex: _currentIndex,
+        onTap: _onTabTapped,
       ),
     );
   }

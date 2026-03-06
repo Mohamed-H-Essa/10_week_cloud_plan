@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../services/widget_service.dart';
 import 'repositories_provider.dart';
 import 'study_plan_provider.dart';
 
@@ -20,6 +21,25 @@ class CompletedTaskIdsNotifier extends StateNotifier<Set<String>> {
   Future<void> toggle(String taskId, int weekNumber) async {
     await _ref.read(progressRepoProvider).toggleTask(taskId, weekNumber);
     _load();
+    _updateWidgets();
+  }
+
+  void _updateWidgets() {
+    try {
+      final plans = _ref.read(weekPlansProvider);
+      final settings = _ref.read(settingsRepoProvider).settings;
+      final startDate = settings.planStartDate;
+      int currentWeek = 1;
+      if (startDate != null) {
+        currentWeek = ((DateTime.now().difference(startDate).inDays / 7).floor() + 1).clamp(1, 10);
+      }
+      WidgetService.updateWidgets(
+        plans: plans,
+        progressRepo: _ref.read(progressRepoProvider),
+        currentWeek: currentWeek,
+        planStartDate: startDate,
+      );
+    } catch (_) {}
   }
 }
 
